@@ -17,42 +17,48 @@
       </v-btn>
     </v-toolbar>
 
-    <v-text-field box label="Title" :value="note.title" :loading="loading"/>
+    <v-text-field box label="Title" v-model="note.title" :loading="loading"/>
 
-    <v-textarea box auto-grow rows="10" label="Content" :value="note.content" :loading="loading"></v-textarea>
+    <v-textarea box auto-grow rows="10" label="Content" v-model="note.text" :loading="loading"></v-textarea>
   </v-container>
 </template>
 
 <script>
+  import notes from "@/services/notes";
+
   export default {
     name: "edit",
     data: () => ({
       locked: false,
       loading: true,
-      id: null,
-      note: {title: "", labels: [], content: ""}
+      new: false,
+      note: notes.new()
     }),
     created() {
-      this.id = this.$route.params.id || null;
-      if (this.id) {
-        this.note = this.$root.$data.notes[this.id];
+      let id = this.$route.params.id || null;
+      if (id) {
+        notes.get(id).then(note => {
+          this.loading = false;
+          this.note = note;
+        });
+      } else {
+        this.loading = false;
+        this.new = true;
       }
-      this.loading = false;
     },
     methods: {
       saveNote() {
-        //todo
-        if (this.id) {
-          this.$router.push({name: "read", params: {id: this.id}});
+        if (this.new) {
+          notes.add(this.note).then(res => this.$router.push({name: "home"}));
         } else {
-          this.$router.push({name: "home"});
+          notes.update(this.note).then(res => this.$router.push({name: "read", params: {id: this.note.id}}));
         }
       },
       cancel() {
-        if (this.id) {
-          this.$router.push({name: 'read', params: {id: this.id}});
-        } else {
+        if (this.new) {
           this.$router.push({name: "home"});
+        } else {
+          this.$router.push({name: 'read', params: {id: this.note.id}});
         }
       }
     }

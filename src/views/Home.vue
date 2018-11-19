@@ -18,18 +18,18 @@
             <v-list-tile-title>Synchronize</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
-        <v-list-group v-model="drawerLabel">
+        <v-list-group v-model="drawerTag">
           <v-list-tile slot="activator">
             <v-list-tile-content>
-              <v-list-tile-title>Labels</v-list-tile-title>
+              <v-list-tile-title>Tags</v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
-          <v-list-tile v-for="(label, i) in labels" :key="i" @click="">
+          <v-list-tile v-for="(tag, i) in tags" :key="i" @click="">
             <v-list-tile-action>
               <v-icon>label</v-icon>
             </v-list-tile-action>
             <v-list-tile-content>
-              <v-list-tile-title>{{ label }}</v-list-tile-title>
+              <v-list-tile-title>{{ tag }}</v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
         </v-list-group>
@@ -48,7 +48,28 @@
       </v-btn>
     </v-toolbar>
 
-    <Listing/>
+    <v-container>
+      <v-list >
+        <template v-for="(note, i) in notes">
+          <v-divider inset :key="i" v-if="i > 0"></v-divider>
+          <v-list-tile avatar :key="note.title" @click="$router.push({name: 'read', params: {id: note.id}})">
+            <v-list-tile-avatar>
+              <v-icon>notes</v-icon>
+            </v-list-tile-avatar>
+            <v-list-tile-content>
+              <v-list-tile-title>{{ note.title }}</v-list-tile-title>
+              <v-list-tile-sub-title>
+                <v-chip disabled small text-color="black" v-for="(tag, i) in note.tags" :key="i">{{ tag }}</v-chip>
+              </v-list-tile-sub-title>
+            </v-list-tile-content>
+            <v-list-tile-action>
+              <v-btn flat icon @click.stop="removeNote(i)">
+                <v-icon>delete</v-icon></v-btn>
+            </v-list-tile-action>
+          </v-list-tile>
+        </template>
+      </v-list>
+    </v-container>
 
     <v-btn fab fixed bottom right dark color="pink" @click="$router.push({name: 'new'})">
       <v-icon>add</v-icon>
@@ -57,16 +78,15 @@
 </template>
 
 <script>
-  import Listing from "@/components/Listing.vue";
+  import notes from "@/services/notes";
 
   export default {
     name: "home",
-    components: {Listing},
     data: () => ({
       drawer: null,
-      drawerLabel: true,
+      drawerTag: true,
       search: false,
-      labels: [
+      tags: [
         "Duplicates",
         "Settings",
         "Send feedback",
@@ -105,7 +125,16 @@
         "Help",
         "App downloads",
         "Go to the old version"
-      ]
-    })
+      ],
+      notes: []
+    }),
+    created() {
+      notes.list().then(list => this.notes = list);
+    },
+    methods: {
+      removeNote(index) {
+        notes.remove(this.notes[index].id).then(res => this.notes.splice(index, 1));
+      }
+    }
   };
 </script>

@@ -32,28 +32,7 @@ const routes = [
   }
 ];
 
-const data = {
-  notes: [
-    {
-      title: "Brunch this weekend?",
-      labels: ["Uno", "Dos", "Tres"],
-      content: "### Hola mundo!"
-    },
-    {
-      title: "Summer BBQ",
-      labels: ["Cuatro"],
-      content: "### Chau mundo!"
-    },
-    {
-      title: "Oui oui",
-      labels: ["Cinco", "Seis"],
-      content: "### Mi mundo!"
-    }
-  ]
-};
-
 new Vue({
   router: new Router({routes}),
-  data,
   render: html => html(App)
 }).$mount("#app");

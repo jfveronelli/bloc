@@ -10,12 +10,20 @@
         <v-icon>keyboard_backspace</v-icon>
       </v-btn>
     </v-toolbar>
-    <div>{{ $root.$data.notes[$route.params.id].title }}</div>
+    <div>{{ note.title }}</div>
   </v-container>
 </template>
 
 <script>
+  import notes from "@/services/notes";
+
   export default {
-    name: "read"
+    name: "read",
+    data: () => ({
+      note: notes.new()
+    }),
+    created() {
+      notes.get(this.$route.params.id).then(note => this.note = note);
+    }
   };
 </script>
