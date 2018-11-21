@@ -2,7 +2,7 @@
   <v-container fluid>
     <v-navigation-drawer app clipped v-model="drawer">
       <v-list dense>
-        <v-list-tile @click="">
+        <v-list-tile>
           <v-list-tile-action>
             <v-icon>settings</v-icon>
           </v-list-tile-action>
@@ -10,7 +10,7 @@
             <v-list-tile-title>Settings</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
-        <v-list-tile @click="">
+        <v-list-tile>
           <v-list-tile-action>
             <v-icon>sync</v-icon>
           </v-list-tile-action>
@@ -24,9 +24,10 @@
               <v-list-tile-title>Tags</v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
-          <v-list-tile v-for="(tag, i) in tags" :key="i" @click="">
+          <v-list-tile v-for="(tag, i) in tags" :key="i" @click="toggleTagFilter(tag)">
             <v-list-tile-action>
-              <v-icon>label</v-icon>
+              <v-icon v-if="tag === $root.$data.selectedTag" color="yellow">label</v-icon>
+              <v-icon v-else>label</v-icon>
             </v-list-tile-action>
             <v-list-tile-content>
               <v-list-tile-title>{{ tag }}</v-list-tile-title>
@@ -49,10 +50,10 @@
     </v-toolbar>
 
     <v-container>
-      <v-list >
+      <v-list v-if="notes.length > 0">
         <template v-for="(note, i) in notes">
           <v-divider inset :key="i" v-if="i > 0"></v-divider>
-          <v-list-tile avatar :key="note.title" @click="$router.push({name: 'read', params: {id: note.id}})">
+          <v-list-tile avatar :key="note.title" @click="$router.push({name: 'read', params: {uuid: note.uuid}})">
             <v-list-tile-avatar>
               <v-icon>notes</v-icon>
             </v-list-tile-avatar>
@@ -64,14 +65,15 @@
             </v-list-tile-content>
             <v-list-tile-action>
               <v-btn flat icon @click.stop="removeNote(i)">
-                <v-icon>delete</v-icon></v-btn>
+                <v-icon>delete</v-icon>
+              </v-btn>
             </v-list-tile-action>
           </v-list-tile>
         </template>
       </v-list>
     </v-container>
 
-    <v-btn fab fixed bottom right dark color="pink" @click="$router.push({name: 'new'})">
+    <v-btn fab fixed bottom right dark color="pink" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
       <v-icon>add</v-icon>
     </v-btn>
   </v-container>
@@ -86,54 +88,35 @@
       drawer: null,
       drawerTag: true,
       search: false,
-      tags: [
-        "Duplicates",
-        "Settings",
-        "Send feedback",
-        "Help",
-        "App downloads",
-        "Go to the old version",
-        "Contacts",
-        "Frequently contacted",
-        "Duplicates",
-        "Settings",
-        "Send feedback",
-        "Help",
-        "App downloads",
-        "Go to the old version",
-        "Contacts",
-        "Frequently contacted",
-        "Duplicates",
-        "Settings",
-        "Send feedback",
-        "Help",
-        "App downloads",
-        "Go to the old version",
-        "Contacts",
-        "Frequently contacted",
-        "Duplicates",
-        "Settings",
-        "Send feedback",
-        "Help",
-        "App downloads",
-        "Go to the old version",
-        "Contacts",
-        "Frequently contacted",
-        "Duplicates",
-        "Settings",
-        "Send feedback",
-        "Help",
-        "App downloads",
-        "Go to the old version"
-      ],
+      tags: [],
       notes: []
     }),
     created() {
-      notes.list().then(list => this.notes = list);
+      this.refreshTagsAndNotes();
     },
     methods: {
+      toggleTagFilter(tag) {
+        this.$root.$data.selectedTag = this.$root.$data.selectedTag === tag? null: tag;
+        this.refreshNotes();
+      },
+      refreshTagsAndNotes() {
+        notes.tags().then(list => {
+          let selectedTag = this.$root.$data.selectedTag;
+          if (selectedTag && list.indexOf(selectedTag) < 0) {
+            this.$root.$data.selectedTag = null;
+          }
+          this.tags = list;
+          this.refreshNotes();
+        });
+      },
+      refreshNotes() {
+        notes.list(this.$root.$data.selectedTag).then(list => this.notes = list);
+      },
+      createNote() {
+        this.$router.push({name: "new"});
+      },
       removeNote(index) {
-        notes.remove(this.notes[index].id).then(res => this.notes.splice(index, 1));
+        notes.remove(this.notes[index].uuid).then(res => this.refreshTagsAndNotes());
       }
     }
   };

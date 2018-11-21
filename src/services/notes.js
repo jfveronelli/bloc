@@ -3,25 +3,40 @@ import uuid from "uuid/v4";
 
 const db = new Dexie("bloc");
 db.version(1).stores({
-  notes: "id, *tags"
+  notes: "uuid, *tags"
 });
 
 class NotesService {
   new() {
     return {
-      id: uuid().replace(/-/g, ""),
+      uuid: uuid().replace(/-/g, ""),
       title: "",
       tags: [],
       text: ""
     };
   }
 
-  async list() {
-    return await db.notes.toArray();
+  newSummary(uuid, title, tags) {
+    return {uuid, title, tags};
   }
 
-  async get(id) {
-    return await db.notes.get({id});
+  async list(tag) {
+    let query = db.notes;
+    if (tag) {
+      query = query.where("tags").equalsIgnoreCase(tag);
+    }
+    let notes = [];
+    await query.each(note => notes.push(this.newSummary(note.uuid, note.title, note.tags)));
+    return notes.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+  }
+
+  async tags() {
+    let tags = await db.notes.orderBy("tags").uniqueKeys();
+    return tags.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  }
+
+  async get(uuid) {
+    return await db.notes.get({uuid});
   }
 
   async add(note) {
@@ -32,8 +47,8 @@ class NotesService {
     return await db.notes.put(note);
   }
 
-  async remove(id) {
-    return await db.notes.delete(id);
+  async remove(uuid) {
+    return await db.notes.delete(uuid);
   }
 }
 

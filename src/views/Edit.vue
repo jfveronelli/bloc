@@ -9,15 +9,23 @@
       <v-btn flat icon v-if="locked" @click.stop="locked = !locked">
         <v-icon>lock_open</v-icon>
       </v-btn>
-      <v-btn flat icon @click.stop="saveNote()">
+      <v-btn flat icon v-shortkey="['ctrl', 's']" @shortkey="saveNote()" @click.stop="saveNote()">
         <v-icon>save</v-icon>
       </v-btn>
-      <v-btn flat icon @click.stop="cancel()">
+      <v-btn flat icon v-shortkey="['esc']" @shortkey="cancel()" @click.stop="cancel()">
         <v-icon>cancel</v-icon>
       </v-btn>
     </v-toolbar>
 
     <v-text-field box label="Title" v-model="note.title" :loading="loading"/>
+
+    <v-combobox box multiple chips clearable label="Tags" v-model="note.tags">
+      <template slot="selection" slot-scope="data">
+        <v-chip close :selected="data.selected" @input="removeTag(data.item)">
+          <strong>{{ data.item }}</strong>
+        </v-chip>
+      </template>
+    </v-combobox>
 
     <v-textarea box auto-grow rows="10" label="Content" v-model="note.text" :loading="loading"></v-textarea>
   </v-container>
@@ -29,36 +37,44 @@
   export default {
     name: "edit",
     data: () => ({
+      uuid: null,
+      note: notes.new(),
       locked: false,
-      loading: true,
-      new: false,
-      note: notes.new()
+      loading: true
     }),
     created() {
-      let id = this.$route.params.id || null;
-      if (id) {
-        notes.get(id).then(note => {
-          this.loading = false;
+      this.uuid = this.$route.params.uuid;
+      if (this.uuid) {
+        notes.get(this.uuid).then(note => {
           this.note = note;
+          this.loading = false;
         });
       } else {
         this.loading = false;
-        this.new = true;
       }
     },
     methods: {
+      readNote(uuid) {
+        this.$router.push({name: "read", params: {uuid}});
+      },
       saveNote() {
-        if (this.new) {
-          notes.add(this.note).then(res => this.$router.push({name: "home"}));
+        if (this.uuid) {
+          notes.update(this.note).then(res => this.readNote(this.uuid));
         } else {
-          notes.update(this.note).then(res => this.$router.push({name: "read", params: {id: this.note.id}}));
+          notes.add(this.note).then(res => this.readNote(this.note.uuid));
         }
       },
+      listNotes() {
+        this.$router.push({name: "home"});
+      },
+      removeTag(tag) {
+        this.note.tags.splice(this.note.tags.indexOf(tag), 1);
+      },
       cancel() {
-        if (this.new) {
-          this.$router.push({name: "home"});
+        if (this.uuid) {
+          this.readNote(this.uuid);
         } else {
-          this.$router.push({name: 'read', params: {id: this.note.id}});
+          this.listNotes();
         }
       }
     }
