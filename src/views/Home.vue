@@ -26,7 +26,7 @@
           </v-list-tile>
           <v-list-tile v-for="(tag, i) in tags" :key="i" @click="toggleTagFilter(tag)">
             <v-list-tile-action>
-              <v-icon v-if="tag === $root.$data.selectedTag" color="yellow">label</v-icon>
+              <v-icon v-if="$root.$data.selectedTags.includes(tag)" color="yellow">label</v-icon>
               <v-icon v-else>label</v-icon>
             </v-list-tile-action>
             <v-list-tile-content>
@@ -42,7 +42,7 @@
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-slide-x-transition>
-        <v-text-field flat solo hide-details prepend-inner-icon="search" label="Search" v-if="search"/>
+        <v-text-field flat solo clearable hide-details prepend-inner-icon="search" label="Search" v-model="$root.$data.searchText" v-if="search" v-on:input="refreshNotes()"/>
       </v-slide-x-transition>
       <v-btn flat icon v-if="!search" @click.stop="search = !search">
         <v-icon>search</v-icon>
@@ -92,25 +92,27 @@
       notes: []
     }),
     created() {
+      this.search = !!this.$root.$data.searchText;
       this.refreshTagsAndNotes();
     },
     methods: {
       toggleTagFilter(tag) {
-        this.$root.$data.selectedTag = this.$root.$data.selectedTag === tag? null: tag;
+        if (this.$root.$data.selectedTags.includes(tag)) {
+          this.$root.$data.selectedTags.splice(this.$root.$data.selectedTags.indexOf(tag), 1);
+        } else {
+          this.$root.$data.selectedTags.push(tag);
+        }
         this.refreshNotes();
       },
       refreshTagsAndNotes() {
         notes.tags().then(list => {
-          let selectedTag = this.$root.$data.selectedTag;
-          if (selectedTag && list.indexOf(selectedTag) < 0) {
-            this.$root.$data.selectedTag = null;
-          }
+          this.$root.$data.selectedTags = this.$root.$data.selectedTags.filter(tag => list.includes(tag));
           this.tags = list;
           this.refreshNotes();
         });
       },
       refreshNotes() {
-        notes.list(this.$root.$data.selectedTag).then(list => this.notes = list);
+        notes.list(this.$root.$data.selectedTags, this.$root.$data.searchText).then(list => this.notes = list);
       },
       createNote() {
         this.$router.push({name: "new"});

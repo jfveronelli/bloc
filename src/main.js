@@ -37,7 +37,8 @@ const routes = [
 new Vue({
   router: new Router({routes}),
   data: {
-    selectedTag: null
+    selectedTags: [],
+    searchText: ""
   },
   render: html => html(App)
 }).$mount("#app");

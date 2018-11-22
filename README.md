@@ -1,5 +1,5 @@
 # Bloc
-Progressive Web Application for note taking, featuring CommonMark, labels and synchronization.
+Progressive Web Application for note taking, featuring GitHub Flavored Markdown, tags, synchronization and encryption.
 
 ## Project setup
 ```

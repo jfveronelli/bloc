@@ -6,6 +6,15 @@ db.version(1).stores({
   notes: "uuid, *tags"
 });
 
+function hasText(note, text) {
+  if (!text) {
+    return true;
+  }
+  text = text.toLowerCase();
+  return note.title.toLowerCase().includes(text) ||
+      note.tags.filter(tag => tag.toLowerCase().includes(text)).length > 0 || note.text.toLowerCase().includes(text);
+}
+
 class NotesService {
   new() {
     return {
@@ -20,13 +29,14 @@ class NotesService {
     return {uuid, title, tags};
   }
 
-  async list(tag) {
-    let query = db.notes;
-    if (tag) {
-      query = query.where("tags").equalsIgnoreCase(tag);
-    }
+  async list(tags, text) {
     let notes = [];
-    await query.each(note => notes.push(this.newSummary(note.uuid, note.title, note.tags)));
+    let query = db.notes;
+    if (tags.length > 0) {
+      query = query.where("tags").anyOfIgnoreCase(tags).distinct();
+    }
+    await query.filter(note => hasText(note, text))
+        .each(note => notes.push(this.newSummary(note.uuid, note.title, note.tags)));
     return notes.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
   }
 

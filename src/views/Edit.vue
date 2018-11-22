@@ -19,7 +19,7 @@
 
     <v-text-field box label="Title" v-model="note.title" :loading="loading"/>
 
-    <v-combobox box multiple chips clearable label="Tags" v-model="note.tags">
+    <v-combobox box multiple chips clearable label="Tags" v-model="note.tags" :items="tags">
       <template slot="selection" slot-scope="data">
         <v-chip close :selected="data.selected" @input="removeTag(data.item)">
           <strong>{{ data.item }}</strong>
@@ -39,6 +39,7 @@
     data: () => ({
       uuid: null,
       note: notes.new(),
+      tags: [],
       locked: false,
       loading: true
     }),
@@ -52,6 +53,7 @@
       } else {
         this.loading = false;
       }
+      notes.tags().then(list => this.tags = list);
     },
     methods: {
       readNote(uuid) {
