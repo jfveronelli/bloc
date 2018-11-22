@@ -32,7 +32,7 @@ class NotesService {
   async list(tags, text) {
     let notes = [];
     let query = db.notes;
-    if (tags.length > 0) {
+    if (tags && tags.length > 0) {
       query = query.where("tags").anyOfIgnoreCase(tags).distinct();
     }
     await query.filter(note => hasText(note, text))

@@ -10,12 +10,20 @@
             <v-list-tile-title>Settings</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
-        <v-list-tile>
+        <v-list-tile @click="syncDialog = true">
           <v-list-tile-action>
             <v-icon>sync</v-icon>
           </v-list-tile-action>
           <v-list-tile-content>
             <v-list-tile-title>Synchronize</v-list-tile-title>
+          </v-list-tile-content>
+        </v-list-tile>
+        <v-list-tile @click="exportNotes()">
+          <v-list-tile-action>
+            <v-icon>save_alt</v-icon>
+          </v-list-tile-action>
+          <v-list-tile-content>
+            <v-list-tile-title>Export all</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
         <v-list-group v-model="drawerTag">
@@ -76,10 +84,24 @@
     <v-btn fab fixed bottom right dark color="pink" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
       <v-icon>add</v-icon>
     </v-btn>
+
+    <v-dialog persistent v-model="syncDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Synchronize</v-card-title>
+        <v-card-text>Please wait...</v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn flat color="green" @click="syncDialog = false">Start</v-btn>
+          <v-btn flat @click="syncDialog = false">Cancel</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script>
+  import saveAs from "file-saver";
+  import JSZip from "jszip";
   import notes from "@/services/notes";
 
   export default {
@@ -88,6 +110,7 @@
       drawer: null,
       drawerTag: true,
       search: false,
+      syncDialog: false,
       tags: [],
       notes: []
     }),
@@ -119,6 +142,20 @@
       },
       removeNote(index) {
         notes.remove(this.notes[index].uuid).then(res => this.refreshTagsAndNotes());
+      },
+      exportNotes() {
+        notes.list().then(list => {
+          var zip = new JSZip();
+          list.forEach(note => zip.file(note.uuid + ".txt", note.title));
+          return zip.generateAsync({type: "blob"});
+        }).then(blob => {
+          let now = new Date();
+          let month = "" + (now.getMonth() + 1);
+          month = month.length < 2? "0" + month: month;
+          let day = "" + now.getDate();
+          day = day.length < 2? "0" + day: day;
+          saveAs(blob, "notes-" + now.getFullYear() + month + day + ".zip");
+        });
       }
     }
   };
