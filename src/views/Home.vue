@@ -101,7 +101,6 @@
 
 <script>
   import saveAs from "file-saver";
-  import JSZip from "jszip";
   import notes from "@/services/notes";
 
   export default {
@@ -128,34 +127,23 @@
         this.refreshNotes();
       },
       refreshTagsAndNotes() {
-        notes.tags().then(list => {
+        notes.local.tags().then(list => {
           this.$root.$data.selectedTags = this.$root.$data.selectedTags.filter(tag => list.includes(tag));
           this.tags = list;
           this.refreshNotes();
         });
       },
       refreshNotes() {
-        notes.list(this.$root.$data.selectedTags, this.$root.$data.searchText).then(list => this.notes = list);
+        notes.local.list(this.$root.$data.selectedTags, this.$root.$data.searchText).then(list => this.notes = list);
       },
       createNote() {
         this.$router.push({name: "new"});
       },
       removeNote(index) {
-        notes.remove(this.notes[index].uuid).then(res => this.refreshTagsAndNotes());
+        notes.local.remove(this.notes[index].uuid).then(res => this.refreshTagsAndNotes());
       },
       exportNotes() {
-        notes.list().then(list => {
-          var zip = new JSZip();
-          list.forEach(note => zip.file(note.uuid + ".txt", note.title));
-          return zip.generateAsync({type: "blob"});
-        }).then(blob => {
-          let now = new Date();
-          let month = "" + (now.getMonth() + 1);
-          month = month.length < 2? "0" + month: month;
-          let day = "" + now.getDate();
-          day = day.length < 2? "0" + day: day;
-          saveAs(blob, "notes-" + now.getFullYear() + month + day + ".zip");
-        });
+        notes.local.export().then(blob => saveAs(blob, "notes-" + notes.localDate() + ".zip"));
       }
     }
   };

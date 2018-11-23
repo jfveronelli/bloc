@@ -46,24 +46,25 @@
     created() {
       this.uuid = this.$route.params.uuid;
       if (this.uuid) {
-        notes.get(this.uuid).then(note => {
+        notes.local.get(this.uuid).then(note => {
           this.note = note;
           this.loading = false;
         });
       } else {
         this.loading = false;
       }
-      notes.tags().then(list => this.tags = list);
+      notes.local.tags().then(list => this.tags = list);
     },
     methods: {
       readNote(uuid) {
         this.$router.push({name: "read", params: {uuid}});
       },
       saveNote() {
+        this.note.date = new Date();
         if (this.uuid) {
-          notes.update(this.note).then(res => this.readNote(this.uuid));
+          notes.local.update(this.note).then(res => this.readNote(this.uuid));
         } else {
-          notes.add(this.note).then(res => this.readNote(this.note.uuid));
+          notes.local.add(this.note).then(res => this.readNote(this.note.uuid));
         }
       },
       listNotes() {

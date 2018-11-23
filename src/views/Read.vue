@@ -39,7 +39,7 @@
     }),
     created() {
       this.uuid = this.$route.params.uuid;
-      notes.get(this.uuid).then(note => {
+      notes.local.get(this.uuid).then(note => {
         this.note = note;
         this.noteText = marked(note.text);
       });
@@ -49,7 +49,7 @@
         this.$router.push({name: "edit", params: {uuid: this.uuid}});
       },
       removeNote() {
-        notes.remove(this.uuid).then(res => this.cancel());
+        notes.local.remove(this.uuid).then(res => this.cancel());
       },
       cancel() {
         this.$router.push({name: "home"});
