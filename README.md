@@ -26,5 +26,12 @@ npm run test
 npm run lint
 ```
 
+### Deploys to Google App Engine
+```
+gcloud auth login
+gcloud config set project <projectID>
+gcloud app deploy --version <version>
+```
+
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
