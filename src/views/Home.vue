@@ -99,7 +99,10 @@
     <v-dialog persistent v-model="wipeDialog" max-width="400">
       <v-card>
         <v-card-title class="headline">Remove all</v-card-title>
-        <v-card-text class="subheading text-xs-center">Are you sure you want to continue?</v-card-text>
+        <v-card-text class="subheading text-xs-center">
+          <div>Are you sure you want to continue?</div>
+          <div>All local data will be removed.</div>
+        </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn flat color="error" @click="wipeNotes()">Yes</v-btn>

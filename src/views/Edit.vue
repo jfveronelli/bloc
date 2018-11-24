@@ -12,8 +12,8 @@
       <v-btn flat icon v-shortkey="['ctrl', 's']" @shortkey="saveNote()" @click.stop="saveNote()">
         <v-icon>save</v-icon>
       </v-btn>
-      <v-btn flat icon v-shortkey="['esc']" @shortkey="cancel()" @click.stop="cancel()">
-        <v-icon>cancel</v-icon>
+      <v-btn flat icon v-shortkey="['esc']" @shortkey="cancelDialog = true" @click.stop="cancelDialog = true">
+        <v-icon>keyboard_backspace</v-icon>
       </v-btn>
     </v-toolbar>
 
@@ -28,6 +28,18 @@
     </v-combobox>
 
     <v-textarea box auto-grow rows="10" label="Content" v-model="note.text" :loading="loading"></v-textarea>
+
+    <v-dialog v-model="cancelDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Cancel</v-card-title>
+        <v-card-text class="subheading text-xs-center">Are you sure you want to exit without saving?</v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn flat color="error" @click="cancel()">Yes</v-btn>
+          <v-btn flat @click="cancelDialog = false">No</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -41,7 +53,8 @@
       note: notes.new(),
       tags: [],
       locked: false,
-      loading: true
+      loading: true,
+      cancelDialog: false
     }),
     created() {
       this.uuid = this.$route.params.uuid;

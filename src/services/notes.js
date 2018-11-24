@@ -107,7 +107,7 @@ class NotesDB {
 
   async remove(uuid, date) {
     await this.db.notes.delete(uuid);
-    return await this.db.removed.put(newNoteState(uuid, date || new Date(), false));
+    return await this.db.removed.put(newNoteStatus(uuid, date || new Date(), false));
   }
 
   async export() {
