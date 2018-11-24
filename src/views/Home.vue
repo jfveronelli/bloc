@@ -18,7 +18,7 @@
             <v-list-tile-title>Export all</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
-        <v-list-tile @click="wipeNotes()">
+        <v-list-tile @click="wipeDialog = true">
           <v-list-tile-action>
             <v-icon>layers_clear</v-icon>
           </v-list-tile-action>
@@ -87,12 +87,23 @@
 
     <v-dialog persistent v-model="syncDialog" max-width="400">
       <v-card>
-        <v-card-title class="headline">Synchronize</v-card-title>
-        <v-card-text>Please wait...</v-card-text>
+        <v-card-title class="headline">Synchronizing</v-card-title>
+        <v-card-text class="subheading font-weight-bold text-xs-center">
+          <v-progress-circular indeterminate color="primary"></v-progress-circular>
+          <span class="ml-4 mr-5">Please wait...</span>
+          <div>&nbsp;</div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog persistent v-model="wipeDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Remove all</v-card-title>
+        <v-card-text class="subheading text-xs-center">Are you sure you want to continue?</v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn flat color="green" @click="syncDialog = false">Start</v-btn>
-          <v-btn flat @click="syncDialog = false">Cancel</v-btn>
+          <v-btn flat color="error" @click="wipeNotes()">Yes</v-btn>
+          <v-btn flat @click="wipeDialog = false">No</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -110,6 +121,7 @@
       drawerTag: true,
       search: false,
       syncDialog: false,
+      wipeDialog: false,
       tags: [],
       notes: []
     }),
@@ -150,13 +162,14 @@
           notes.remote.requestToken();
         } else {
           this.syncDialog = true;
-          notes.remote.sync();
+          notes.remote.state().then(() => this.syncDialog = false);
         }
       },
       wipeNotes() {
         notes.local.wipe();
         notes.remote.updateToken();
         this.refreshTagsAndNotes();
+        this.wipeDialog = false;
       }
     }
   };
