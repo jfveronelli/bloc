@@ -2,6 +2,7 @@ import Dexie from "dexie";
 import uuid from "uuid/v4";
 import yaml from "js-yaml";
 import JSZip from "jszip";
+import axios from "axios";
 
 
 function newNote() {
@@ -17,6 +18,11 @@ function newNote() {
 
 function newNoteSummary(uuid, title, tags) {
   return {uuid, title, tags};
+}
+
+
+function newNoteStatus(uuid, date, active) {
+  return {uuid, date, active};
 }
 
 
@@ -66,7 +72,8 @@ class NotesDB {
   constructor() {
     this.db = new Dexie("bloc");
     this.db.version(1).stores({
-      notes: "uuid, *tags"
+      notes: "uuid, *tags",
+      removed: "uuid"
     });
   }
 
@@ -98,8 +105,9 @@ class NotesDB {
     return await this.db.notes.put(note);
   }
 
-  async remove(uuid) {
-    return await this.db.notes.delete(uuid);
+  async remove(uuid, date) {
+    await this.db.notes.delete(uuid);
+    return await this.db.removed.put(newNoteState(uuid, date || new Date(), false));
   }
 
   async export() {
@@ -119,16 +127,125 @@ class NotesDB {
     };
     return zip.generateAsync(options);
   }
+
+  async state() {
+    let map = new Map();
+    await this.db.removed.each(status => map.set(status.uuid, status));
+    await this.db.notes.each(note => map.set(note.uuid, newNoteStatus(note.uuid, note.date, true)));
+    return map;
+  }
+
+  wipe() {
+    this.db.notes.clear();
+    this.db.removed.clear();
+  }
+}
+
+
+class NotesGDrive {
+  constructor() {
+    this.clientId = "806239310351-m2kct1om18ppmgbujjp5254vvud7s5a0.apps.googleusercontent.com";
+    this.scope = "https://www.googleapis.com/auth/drive.appdata";
+    this.http = axios.create({baseURL: "https://www.googleapis.com", maxContentLength: 10000});
+    this.http.defaults.headers.common["Authorization"] = "Bearer " + this.token();
+    this.cache = new Map();
+  }
+
+  token() {
+    return localStorage.googleAccessToken;
+  }
+
+  updateToken(text) {
+    const TOKEN_START = "access_token=";
+    if (text && text.includes(TOKEN_START)) {
+      let startPos = text.indexOf(TOKEN_START) + TOKEN_START.length;
+      localStorage.googleAccessToken = text.slice(startPos, text.indexOf("&", startPos));
+    } else {
+      localStorage.removeItem("googleAccessToken");
+    }
+    this.http.defaults.headers.common["Authorization"] = "Bearer " + this.token();
+  }
+
+  requestToken() {
+    let redirectUri = document.location.origin + document.location.pathname;
+    document.location.href = "https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id=" +
+        this.clientId + "&scope=" + this.scope + "&redirect_uri=" + redirectUri;
+  }
+
+  newStatus(file, active) {
+    let uuid = file.name.slice(0, file.name.indexOf("."));
+    let date = new Date(file.modifiedTime);
+    this.cache.set(uuid, {id: file.id, date});
+    return newNoteStatus(uuid, data, active);
+  }
+
+  async get(uuid) {
+    let cached = this.cache.get(uuid);
+    let result = await this.http.get("/drive/v3/files/" + cached.id + "?alt=media", {responseType: "text"});
+    return inflate(result.data, uuid, cached.date);
+  }
+
+  async add(note) {
+    let headers = {"Content-Type": "text/plain"};
+    let data = stringify(note);
+    let result = await this.http.post("/upload/drive/v3/files?uploadType=media", data, {headers});
+
+    data = {name: note.uuid + ".md", modifiedTime: note.date};
+    return await this.http.patch("/drive/v3/files/" + result.data.id, data);
+  }
+
+  async update(note) {
+    let cached = this.cache.get(note.uuid);
+    let headers = {"Content-Type": "text/plain"};
+    let data = stringify(note);
+    await this.http.patch("/upload/drive/v3/files/" + cached.id + "?uploadType=media", data, {headers});
+
+    data = {name: note.uuid + ".md", modifiedTime: note.date};
+    return await this.http.patch("/drive/v3/files/" + cached.id, data);
+  }
+
+  async remove(uuid, date) {
+    let cached = this.cache.get(uuid);
+    await this.http.delete("/drive/v3/files/" + cached.id);
+
+    let data = {name: note.uuid + ".removed", modifiedTime: date};
+    return await this.http.post("/drive/v3/files", data);
+  }
+
+  async state() {
+    this.cache.clear();
+    let map = new Map();
+    let pageToken = false;
+    do {
+      let params = {spaces: "appDataFolder", pageSize: 1000, fields: "files(id,name,modifiedTime),nextPageToken"};
+      if (pageToken) {
+        params.pageToken = pageToken;
+      }
+      let result = await this.http.get("/drive/v3/files", {params});
+      result.data.files.filter(file => file.name.endsWith(".removed")).forEach(file => {
+        let status = this.newStatus(file, false);
+        map.set(status.uuid, status);
+      });
+      result.data.files.filter(file => file.name.endsWith(".md")).forEach(file => {
+        let status = this.newStatus(file, true);
+        map.set(status.uuid, status);
+      });
+      pageToken = result.data.nextPageToken;
+    } while(pageToken);
+    return map;
+  }
 }
 
 
 const FILE_HEADER_START = "```yaml\n";
 const FILE_HEADER_END = "\n```\n\n";
 const local = new NotesDB();
+const remote = new NotesGDrive();
 
 
 export default {
   local,
+  remote,
   new: newNote,
   localDate
 };

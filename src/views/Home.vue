@@ -2,15 +2,7 @@
   <v-container fluid>
     <v-navigation-drawer app clipped v-model="drawer">
       <v-list dense>
-        <v-list-tile>
-          <v-list-tile-action>
-            <v-icon>settings</v-icon>
-          </v-list-tile-action>
-          <v-list-tile-content>
-            <v-list-tile-title>Settings</v-list-tile-title>
-          </v-list-tile-content>
-        </v-list-tile>
-        <v-list-tile @click="syncDialog = true">
+        <v-list-tile @click="syncNotes()">
           <v-list-tile-action>
             <v-icon>sync</v-icon>
           </v-list-tile-action>
@@ -24,6 +16,14 @@
           </v-list-tile-action>
           <v-list-tile-content>
             <v-list-tile-title>Export all</v-list-tile-title>
+          </v-list-tile-content>
+        </v-list-tile>
+        <v-list-tile @click="wipeNotes()">
+          <v-list-tile-action>
+            <v-icon>layers_clear</v-icon>
+          </v-list-tile-action>
+          <v-list-tile-content>
+            <v-list-tile-title>Remove all</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
         <v-list-group v-model="drawerTag">
@@ -144,6 +144,19 @@
       },
       exportNotes() {
         notes.local.export().then(blob => saveAs(blob, "notes-" + notes.localDate() + ".zip"));
+      },
+      syncNotes() {
+        if (!notes.remote.token()) {
+          notes.remote.requestToken();
+        } else {
+          this.syncDialog = true;
+          notes.remote.sync();
+        }
+      },
+      wipeNotes() {
+        notes.local.wipe();
+        notes.remote.updateToken();
+        this.refreshTagsAndNotes();
       }
     }
   };

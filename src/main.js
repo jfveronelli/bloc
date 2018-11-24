@@ -31,6 +31,11 @@ const routes = [
     path: "/note/:uuid/edit",
     name: "edit",
     component: () => import("@/views/Edit.vue")
+  },
+  {
+    path: "/*access_token=*",
+    name: "google_auth",
+    component: () => import("@/views/GoogleAuth.vue")
   }
 ];
 
