@@ -92,7 +92,7 @@
         if (this.uuid) {
           notes.local.update(this.note).then(res => this.readNote(this.uuid));
         } else {
-          notes.local.add(this.note).then(res => this.readNote(this.note.uuid));
+          notes.local.add(this.note).then(() => this.readNote(this.note.uuid));
         }
       },
       listNotes() {

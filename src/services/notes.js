@@ -3,6 +3,11 @@ import uuid from "uuid/v4";
 import yaml from "js-yaml";
 import JSZip from "jszip";
 import axios from "axios";
+import base64 from "base64-js";
+import {sha256} from "js-sha256";
+import aes from "aes-js";
+import argon2 from "argon2-browser";
+window.argon2 = argon2;
 
 
 function newNote() {
@@ -279,16 +284,79 @@ class NotesSynchronizer {
 }
 
 
+class NoteCrypto {
+  random(array) {
+    (window.crypto || window.msCrypto).getRandomValues(array);
+  }
+
+  async key(pass, salt) {
+    return await argon2.hash({pass, salt, hashLen: 32, time: 50, mem: 1024, parallelism: 1,
+        type: argon2.ArgonType.Argon2d, distPath: "js"});
+  }
+
+  hmac(keyStr, strArray) {
+    let hmac = sha256.hmac.create(keyStr);
+    strArray.forEach(str => hmac.update(str));
+    return hmac.hex();
+  }
+
+  async encrypt(note, pass) {
+    let salt = new Uint8Array(16);
+    this.random(salt);
+    let saltStr = aes.utils.hex.fromBytes(salt);
+    let key = await this.key(pass, salt);
+
+    let iv = new Uint8Array(16);
+    this.random(iv);
+    let ivStr = aes.utils.hex.fromBytes(iv);
+    let buffer = Array.from(aes.utils.utf8.toBytes(note.text));
+    let padding = (16 - (buffer.length % 16)) || 16;
+    for (let c = 0; c < padding; c++) {
+      buffer.push(padding);
+    }
+    let cbc = new aes.ModeOfOperation.cbc(key.hash, iv);
+    let cipher = base64.fromByteArray(cbc.encrypt(buffer));
+
+    let hmac = this.hmac(key.hashHex, [ivStr, cipher]);
+
+    note.enc_salt = saltStr;
+    note.enc_iv = ivStr;
+    note.enc_hmac = hmac;
+    note.text = cipher;
+  }
+
+  async decrypt(note, pass) {
+    let key = await this.key(pass, aes.utils.hex.toBytes(note.enc_salt));
+
+    let hmac = this.hmac(key.hashHex, [note.enc_iv, note.text]);
+    if (hmac !== note.enc_hmac) {
+      return false;
+    }
+
+    let iv = aes.utils.hex.toBytes(note.enc_iv);
+    let cipher = base64.toByteArray(note.text);
+    let cbc = new aes.ModeOfOperation.cbc(key.hash, iv);
+    let buffer = Array.from(cbc.decrypt(cipher));
+    let padding = buffer[buffer.length - 1];
+    buffer.splice(buffer.length - padding, buffer.length);
+    return aes.utils.utf8.fromBytes(buffer);
+  }
+}
+
+
 const FILE_HEADER_START = "```yaml\n";
 const FILE_HEADER_END = "\n```\n\n";
 const local = new NotesDB();
 const remote = new NotesGDrive();
 const synchronizer = new NotesSynchronizer(local, remote);
+const crypto = new NoteCrypto();
+
 
 export default {
   local,
   remote,
   synchronizer,
+  crypto,
   new: newNote,
   localDate
 };
