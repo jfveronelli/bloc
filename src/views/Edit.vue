@@ -9,12 +9,18 @@
       <v-btn flat icon v-if="locked" @click.stop="locked = !locked">
         <v-icon>lock_open</v-icon>
       </v-btn>
-      <v-btn flat icon v-shortkey="['ctrl', 's']" @shortkey="saveNote()" @click.stop="saveNote()">
-        <v-icon>save</v-icon>
-      </v-btn>
-      <v-btn flat icon v-shortkey="['esc']" @shortkey="cancelDialog = true" @click.stop="cancelDialog = true">
-        <v-icon>keyboard_backspace</v-icon>
-      </v-btn>
+      <v-tooltip bottom>
+        <v-btn flat icon slot="activator" v-shortkey="['ctrl', 's']" @shortkey="saveNote()" @click.stop="saveNote()">
+          <v-icon>save</v-icon>
+        </v-btn>
+        <span>Save<br/>[ Ctrl S ]</span>
+      </v-tooltip>
+      <v-tooltip bottom>
+        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancelDialog = true" @click.stop="cancelDialog = true">
+          <v-icon>keyboard_backspace</v-icon>
+        </v-btn>
+        <span>Cancel<br/>[ Esc ]</span>
+      </v-tooltip>
     </v-toolbar>
 
     <v-text-field box label="Title" v-model="note.title" :loading="loading"/>
@@ -24,6 +30,15 @@
         <v-chip close :selected="data.selected" @input="removeTag(data.item)">
           <strong>{{ data.item }}</strong>
         </v-chip>
+      </template>
+      <template slot="no-data">
+        <v-list-tile>
+          <v-list-tile-content>
+            <v-list-tile-title>
+              Press <kbd>enter</kbd> to add a new tag.
+            </v-list-tile-title>
+          </v-list-tile-content>
+        </v-list-tile>
       </template>
     </v-combobox>
 

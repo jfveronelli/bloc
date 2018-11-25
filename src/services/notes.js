@@ -26,16 +26,6 @@ function newNoteStatus(uuid, date, active) {
 }
 
 
-function hasText(note, text) {
-  if (!text) {
-    return true;
-  }
-  text = text.toLowerCase();
-  return note.title.toLowerCase().includes(text) ||
-      note.tags.filter(tag => tag.toLowerCase().includes(text)).length > 0 || note.text.toLowerCase().includes(text);
-}
-
-
 function stringify(note) {
   let str = FILE_HEADER_START + "title: " + note.title + "\ntags:";
   note.tags.forEach(tag => str += "\n  - " + tag);
@@ -83,7 +73,7 @@ class NotesDB {
     if (tags && tags.length > 0) {
       query = query.where("tags").anyOfIgnoreCase(tags).distinct();
     }
-    await query.filter(note => hasText(note, text))
+    await query.filter(note => this.__hasText(note, text))
         .each(note => notes.push(newNoteSummary(note.uuid, note.title, note.tags)));
     return notes.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
   }
@@ -98,16 +88,16 @@ class NotesDB {
   }
 
   async add(note) {
-    return await this.db.notes.add(note);
+    await this.db.notes.add(note);
   }
 
   async update(note) {
-    return await this.db.notes.put(note);
+    await this.db.notes.put(note);
   }
 
   async remove(uuid, date) {
     await this.db.notes.delete(uuid);
-    return await this.db.removed.put(newNoteStatus(uuid, date || new Date(), false));
+    await this.db.removed.put(newNoteStatus(uuid, date || new Date(), false));
   }
 
   async export() {
@@ -139,6 +129,16 @@ class NotesDB {
     this.db.notes.clear();
     this.db.removed.clear();
   }
+
+  __hasText(note, text) {
+    if (!text) {
+      return true;
+    }
+    text = text.toLowerCase();
+    return note.title.toLowerCase().includes(text) ||
+        note.tags.filter(tag => tag.toLowerCase().includes(text)).length > 0 ||
+        note.text.toLowerCase().includes(text);
+  }
 }
 
 
@@ -146,6 +146,7 @@ class NotesGDrive {
   constructor() {
     this.clientId = "806239310351-m2kct1om18ppmgbujjp5254vvud7s5a0.apps.googleusercontent.com";
     this.scope = "https://www.googleapis.com/auth/drive.appdata";
+    this.parents = ["appDataFolder"];
     this.http = axios.create({baseURL: "https://www.googleapis.com", maxContentLength: 10000});
     this.http.defaults.headers.common["Authorization"] = "Bearer " + this.token();
     this.cache = new Map();
@@ -176,7 +177,7 @@ class NotesGDrive {
     let uuid = file.name.slice(0, file.name.indexOf("."));
     let date = new Date(file.modifiedTime);
     this.cache.set(uuid, {id: file.id, date});
-    return newNoteStatus(uuid, data, active);
+    return newNoteStatus(uuid, date, active);
   }
 
   async get(uuid) {
@@ -186,30 +187,26 @@ class NotesGDrive {
   }
 
   async add(note) {
-    let headers = {"Content-Type": "text/plain"};
-    let data = stringify(note);
-    let result = await this.http.post("/upload/drive/v3/files?uploadType=media", data, {headers});
-
-    data = {name: note.uuid + ".md", modifiedTime: note.date};
-    return await this.http.patch("/drive/v3/files/" + result.data.id, data);
+    let headers = {"Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": "text/plain; charset=UTF-8"};
+    let data = {name: note.uuid + ".md", modifiedTime: note.date, parents: this.parents};
+    let result = await this.http.post("/upload/drive/v3/files?uploadType=resumable", data, {headers});
+    await this.http.put(result.headers.location, stringify(note));
   }
 
   async update(note) {
     let cached = this.cache.get(note.uuid);
     let headers = {"Content-Type": "text/plain"};
-    let data = stringify(note);
-    await this.http.patch("/upload/drive/v3/files/" + cached.id + "?uploadType=media", data, {headers});
-
-    data = {name: note.uuid + ".md", modifiedTime: note.date};
-    return await this.http.patch("/drive/v3/files/" + cached.id, data);
+    await this.http.patch("/upload/drive/v3/files/" + cached.id + "?uploadType=media", stringify(note), {headers});
+    await this.http.patch("/drive/v3/files/" + cached.id, {name: note.uuid + ".md", modifiedTime: note.date});
   }
 
   async remove(uuid, date) {
     let cached = this.cache.get(uuid);
-    await this.http.delete("/drive/v3/files/" + cached.id);
-
-    let data = {name: note.uuid + ".removed", modifiedTime: date};
-    return await this.http.post("/drive/v3/files", data);
+    if (cached) {
+      await this.http.delete("/drive/v3/files/" + cached.id);
+    }
+    let data = {name: uuid + ".removed", modifiedTime: date, parents: this.parents};
+    await this.http.post("/drive/v3/files", data);
   }
 
   async state() {
@@ -237,15 +234,61 @@ class NotesGDrive {
 }
 
 
+class NotesSynchronizer {
+  constructor(notesA, notesB) {
+    this.notesA = notesA;
+    this.notesB = notesB;
+  }
+
+  async sync() {
+    let stateA = await this.notesA.state();
+    let stateB = await this.notesB.state();
+    await this.__applyChanges(this.notesA, stateA, this.notesB, stateB);
+    await this.__applyChanges(this.notesB, stateB, this.notesA, stateA);
+  }
+
+  async __applyChanges(notesX, stateX, notesY, stateY) {
+    for (let statusX of stateX.values()) {
+      let uuid = statusX.uuid;
+      let statusY = stateY.get(uuid);
+      if (!statusY) {
+        if (statusX.active) {
+          console.log("Adding note " + uuid);
+          await notesY.add(await notesX.get(uuid));
+        } else {
+          console.log("Informing removed note " + uuid);
+          await notesY.remove(uuid, statusX.date);
+        }
+      } else {
+        let deltaMillis = statusX.date.getTime() - statusY.date.getTime();
+        if (deltaMillis >= 1000) {
+          if (statusX.active) {
+            console.log("Updating note " + uuid);
+            await notesY.update(await notesX.get(uuid));
+          } else {
+            console.log("Removing note " + uuid);
+            await notesY.remove(uuid, statusX.date);
+          }
+        } else if (Math.abs(deltaMillis) >= 0 && Math.abs(deltaMillis) < 1000 && statusX.active && !statusY.active) {
+          console.log("Updating (conflicted) note " + uuid);
+          await notesY.update(await notesX.get(uuid));
+        }
+      }
+    }
+  }
+}
+
+
 const FILE_HEADER_START = "```yaml\n";
 const FILE_HEADER_END = "\n```\n\n";
 const local = new NotesDB();
 const remote = new NotesGDrive();
-
+const synchronizer = new NotesSynchronizer(local, remote);
 
 export default {
   local,
   remote,
+  synchronizer,
   new: newNote,
   localDate
 };

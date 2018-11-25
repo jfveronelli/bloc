@@ -3,15 +3,24 @@
     <v-toolbar app clipped-left>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
-      <v-btn flat icon v-shortkey="['ctrl', 'e']" @shortkey="editNote()" @click.stop="editNote()">
-        <v-icon>edit</v-icon>
-      </v-btn>
-      <v-btn flat icon v-shortkey="['ctrl', 'd']" @shortkey="removeDialog = true" @click.stop="removeDialog = true">
-        <v-icon>delete</v-icon>
-      </v-btn>
-      <v-btn flat icon v-shortkey="['esc']" @shortkey="cancel()" @click.stop="cancel()">
-        <v-icon>keyboard_backspace</v-icon>
-      </v-btn>
+      <v-tooltip bottom>
+        <v-btn flat icon slot="activator" v-shortkey="['ctrl', 'e']" @shortkey="editNote()" @click.stop="editNote()">
+          <v-icon>edit</v-icon>
+        </v-btn>
+        <span>Edit<br/>[ Ctrl E ]</span>
+      </v-tooltip>
+      <v-tooltip bottom>
+        <v-btn flat icon slot="activator" v-shortkey="['ctrl', 'd']" @shortkey="removeDialog = true" @click.stop="removeDialog = true">
+          <v-icon>delete</v-icon>
+        </v-btn>
+        <span>Remove<br/>[ Ctrl D ]</span>
+      </v-tooltip>
+      <v-tooltip bottom>
+        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancel()" @click.stop="cancel()">
+          <v-icon>keyboard_backspace</v-icon>
+        </v-btn>
+        <span>Exit<br/>[ Esc ]</span>
+      </v-tooltip>
     </v-toolbar>
 
     <v-layout justify-center>

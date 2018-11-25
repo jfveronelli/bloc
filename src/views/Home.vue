@@ -2,14 +2,17 @@
   <v-container fluid>
     <v-navigation-drawer app clipped v-model="drawer">
       <v-list dense>
-        <v-list-tile @click="syncNotes()">
-          <v-list-tile-action>
-            <v-icon>sync</v-icon>
-          </v-list-tile-action>
-          <v-list-tile-content>
-            <v-list-tile-title>Synchronize</v-list-tile-title>
-          </v-list-tile-content>
-        </v-list-tile>
+        <v-tooltip right>
+          <v-list-tile slot="activator" v-shortkey="['ctrl', 'i']" @shortkey="syncNotes()" @click="syncNotes()">
+            <v-list-tile-action>
+              <v-icon>sync</v-icon>
+            </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>Synchronize</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <span>Sync<br/>[ Ctrl I ]</span>
+        </v-tooltip>
         <v-list-tile @click="exportNotes()">
           <v-list-tile-action>
             <v-icon>save_alt</v-icon>
@@ -81,9 +84,12 @@
       </v-list>
     </v-container>
 
-    <v-btn fab fixed bottom right dark color="pink" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
-      <v-icon>add</v-icon>
-    </v-btn>
+    <v-tooltip top>
+      <v-btn fab fixed bottom right dark color="pink" slot="activator" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
+        <v-icon>add</v-icon>
+      </v-btn>
+      <span>Add<br/>[ Ctrl A ]</span>
+    </v-tooltip>
 
     <v-dialog persistent v-model="syncDialog" max-width="400">
       <v-card>
@@ -130,7 +136,11 @@
     }),
     created() {
       this.search = !!this.$root.$data.searchText;
-      this.refreshTagsAndNotes();
+      this.refreshTagsAndNotes().then(() => {
+        if (this.$route.query.sync) {
+          this.syncNotes();
+        }
+      });
     },
     methods: {
       toggleTagFilter(tag) {
@@ -141,12 +151,11 @@
         }
         this.refreshNotes();
       },
-      refreshTagsAndNotes() {
-        notes.local.tags().then(list => {
-          this.$root.$data.selectedTags = this.$root.$data.selectedTags.filter(tag => list.includes(tag));
-          this.tags = list;
-          this.refreshNotes();
-        });
+      async refreshTagsAndNotes() {
+        let list = await notes.local.tags();
+        this.$root.$data.selectedTags = this.$root.$data.selectedTags.filter(tag => list.includes(tag));
+        this.tags = list;
+        this.refreshNotes();
       },
       refreshNotes() {
         notes.local.list(this.$root.$data.selectedTags, this.$root.$data.searchText).then(list => this.notes = list);
@@ -155,7 +164,7 @@
         this.$router.push({name: "new"});
       },
       removeNote(index) {
-        notes.local.remove(this.notes[index].uuid).then(res => this.refreshTagsAndNotes());
+        notes.local.remove(this.notes[index].uuid).then(this.refreshTagsAndNotes);
       },
       exportNotes() {
         notes.local.export().then(blob => saveAs(blob, "notes-" + notes.localDate() + ".zip"));
@@ -165,7 +174,14 @@
           notes.remote.requestToken();
         } else {
           this.syncDialog = true;
-          notes.remote.state().then(() => this.syncDialog = false);
+          notes.synchronizer.sync().then(() => {
+            this.refreshTagsAndNotes();
+            this.syncDialog = false
+          }).catch(error => {
+            if (error.response && error.response.status === 401) {
+              notes.remote.requestToken();
+            }
+          });
         }
       },
       wipeNotes() {

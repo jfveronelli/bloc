@@ -7,7 +7,7 @@
     name: "google_auth",
     created() {
       notes.remote.updateToken(document.location.hash);
-      this.$router.push({name: "home"});
+      this.$router.push({name: "home", query: {sync: "true"}});
     }
   }
 </script>
