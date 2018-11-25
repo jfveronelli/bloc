@@ -25,10 +25,17 @@
 
     <v-layout justify-center>
       <v-flex xs12 md10 lg8>
-        <v-card>
-          <v-card-title primary class="title">{{ note.title }}</v-card-title>
+        <v-card >
+          <v-card-title>
+            <div>
+              <div class="headline font-weight-medium">{{ note.title }}</div>
+              <v-chip small class="body-1" color="primary" text-color="white" v-for="tag in note.tags" :key="tag">
+                {{ tag }}
+              </v-chip>
+            </div>
+          </v-card-title>
           <v-card-text>
-            <div v-html="noteText"></div>
+            <div class="markdown-body" v-html="noteText"></div>
           </v-card-text>
         </v-card>
       </v-flex>

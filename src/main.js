@@ -3,6 +3,7 @@ import Router from "vue-router";
 import Vuetify from "vuetify/lib";
 import "vuetify/src/stylus/app.styl";
 import VueShortKey from "vue-shortkey";
+import "github-markdown-css";
 import App from "@/App.vue";
 import Home from "@/views/Home.vue";
 import "@/registerServiceWorker";
