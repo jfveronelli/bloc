@@ -8,7 +8,7 @@
               <v-icon>vpn_key</v-icon>
             </v-list-tile-action>
             <v-list-tile-content>
-              <v-list-tile-title>Master password</v-list-tile-title>
+              <v-list-tile-title>Password</v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
           <span>Refresh the view at any time to clear the password</span>
@@ -29,7 +29,7 @@
             <v-icon>save_alt</v-icon>
           </v-list-tile-action>
           <v-list-tile-content>
-            <v-list-tile-title>Export all</v-list-tile-title>
+            <v-list-tile-title>Export all listed</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
         <v-list-tile @click="wipeDialog = true">
@@ -71,32 +71,38 @@
       </v-btn>
     </v-toolbar>
 
-    <v-container>
-      <v-list v-if="notes.length > 0">
-        <template v-for="(note, i) in notes">
-          <v-divider inset :key="i" v-if="i > 0"></v-divider>
-          <v-list-tile avatar :key="note.title" @click="$router.push({name: 'read', params: {uuid: note.uuid}})">
-            <v-list-tile-avatar>
-              <v-badge overlap color="white">
-                <v-icon small v-if="note.crypto" slot="badge">lock</v-icon>
-                <v-icon>notes</v-icon>
-              </v-badge>
-            </v-list-tile-avatar>
-            <v-list-tile-content>
-              <v-list-tile-title>{{ note.title }}</v-list-tile-title>
-              <v-list-tile-sub-title>
-                <v-chip disabled small text-color="black" v-for="(tag, i) in note.tags" :key="i">{{ tag }}</v-chip>
-              </v-list-tile-sub-title>
-            </v-list-tile-content>
-            <v-list-tile-action>
-              <v-btn flat icon @click.stop="removeNote(i)">
-                <v-icon>delete</v-icon>
-              </v-btn>
-            </v-list-tile-action>
-          </v-list-tile>
-        </template>
-      </v-list>
-    </v-container>
+    <v-layout justify-center>
+      <v-flex xs12 md10 lg8>
+        <v-card v-if="notes.length > 0">
+          <v-card-text>
+            <v-list>
+              <template v-for="(note, i) in notes">
+                <v-divider inset :key="i" v-if="i > 0"></v-divider>
+                <v-list-tile avatar :key="note.title" @click="$router.push({name: 'read', params: {uuid: note.uuid}})">
+                  <v-list-tile-avatar>
+                    <v-badge overlap color="white">
+                      <v-icon small v-if="note.crypto" slot="badge">lock</v-icon>
+                      <v-icon>notes</v-icon>
+                    </v-badge>
+                  </v-list-tile-avatar>
+                  <v-list-tile-content>
+                    <v-list-tile-title>{{ note.title }}</v-list-tile-title>
+                    <v-list-tile-sub-title>
+                      <v-chip disabled small text-color="black" v-for="(tag, i) in note.tags" :key="i">{{ tag }}</v-chip>
+                    </v-list-tile-sub-title>
+                  </v-list-tile-content>
+                  <v-list-tile-action>
+                    <v-btn flat icon @click.stop="openRemoveDialog(note)">
+                      <v-icon>delete</v-icon>
+                    </v-btn>
+                  </v-list-tile-action>
+                </v-list-tile>
+              </template>
+            </v-list>
+          </v-card-text>
+        </v-card>
+      </v-flex>
+    </v-layout>
 
     <v-tooltip top>
       <v-btn fab fixed bottom right dark color="pink" slot="activator" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
@@ -107,7 +113,7 @@
 
     <v-dialog persistent v-model="passwordDialog" max-width="400">
       <v-card>
-        <v-card-title class="headline">Master password</v-card-title>
+        <v-card-title class="headline">Password</v-card-title>
         <v-card-text>
           <v-text-field required label="Password" :type="passwordShown? 'text': 'password'"
               :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.$data.password"
@@ -145,6 +151,21 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="removeDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Remove note</v-card-title>
+        <v-card-text class="subheading">
+          <div>Are you sure you want to remove this note?</div>
+          <div v-if="selectedNote" class="font-weight-medium">{{ selectedNote.title }}</div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn flat color="error" @click="removeNote()">Yes</v-btn>
+          <v-btn flat @click="removeDialog = false">No</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -162,6 +183,8 @@
       passwordShown: false,
       syncDialog: false,
       wipeDialog: false,
+      removeDialog: false,
+      selectedNote: null,
       tags: [],
       notes: []
     }),
@@ -189,16 +212,20 @@
         this.refreshNotes();
       },
       refreshNotes() {
-        notes.local.list(this.$root.$data.selectedTags, this.$root.$data.searchText).then(list => this.notes = list);
+        let params = {tags: this.$root.$data.selectedTags, text: this.$root.$data.searchText};
+        notes.local.list(params).then(list => this.notes = list);
       },
       createNote() {
         this.$router.push({name: "new"});
       },
-      removeNote(index) {
-        notes.local.remove(this.notes[index].uuid).then(this.refreshTagsAndNotes);
+      removeNote() {
+        notes.local.remove(this.selectedNote.uuid).then(this.refreshTagsAndNotes);
+        this.selectedNote = null;
+        this.removeDialog = false;
       },
       exportNotes() {
-        notes.local.export().then(blob => saveAs(blob, "notes-" + notes.localDate() + ".zip"));
+        let uuids = this.notes.map(note => note.uuid);
+        notes.local.export(uuids).then(blob => saveAs(blob, "notes-" + notes.localDate() + ".zip"));
       },
       syncNotes() {
         if (!notes.remote.token()) {
@@ -222,6 +249,10 @@
         this.$root.$data.searchText = "";
         this.refreshTagsAndNotes();
         this.wipeDialog = false;
+      },
+      openRemoveDialog(note) {
+        this.selectedNote = note;
+        this.removeDialog = true;
       },
       closePasswordDialog() {
         this.passwordShown = false;

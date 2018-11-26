@@ -16,13 +16,14 @@ function newNote() {
     date: new Date(),
     title: "",
     tags: [],
+    type: types.basic,
     text: ""
   };
 }
 
 
-function newNoteSummary(uuid, title, tags, crypto) {
-  return {uuid, title, tags, crypto};
+function newNoteSummary(uuid, title, tags, type, crypto) {
+  return {uuid, title, tags, type, crypto};
 }
 
 
@@ -34,6 +35,9 @@ function newNoteStatus(uuid, date, active) {
 function stringify(note) {
   let str = FILE_HEADER_START + "title: " + note.title + "\ntags:";
   note.tags.forEach(tag => str += "\n  - " + tag);
+  if (note.type !== types.basic) {
+    str += "\ntype: " + note.type;
+  }
   if (note.crypto) {
     str += "\ncrypto:\n  salt: " + note.crypto.salt + "\n  iv: " + note.crypto.iv + "\n  hmac: " + note.crypto.hmac;
   }
@@ -52,6 +56,9 @@ function inflate(str, uuid, date) {
 
   note.title = header.title;
   note.tags = header.tags || [];
+  if (header.type) {
+    note.type = header.type;
+  }
   if (header.crypto) {
     note.crypto = header.crypto;
   }
@@ -74,19 +81,25 @@ class NotesDB {
   constructor() {
     this.db = new Dexie("bloc");
     this.db.version(1).stores({
-      notes: "uuid, *tags",
+      notes: "uuid, *tags, type",
       removed: "uuid"
     });
   }
 
-  async list(tags, text) {
+  async list(params) { //tags, type, text
     let notes = [];
     let query = this.db.notes;
-    if (tags && tags.length > 0) {
-      query = query.where("tags").anyOfIgnoreCase(tags).distinct();
+    let hasWhere = false;
+    if (params.tags && params.tags.length > 0) {
+      query = query.where("tags").anyOfIgnoreCase(params.tags).distinct();
+      hasWhere = true;
     }
-    await query.filter(note => this.__hasText(note, text))
-        .each(note => notes.push(newNoteSummary(note.uuid, note.title, note.tags, note.crypto)));
+    if (params.type) {
+      query = (hasWhere? query.and("type"): query.where("type")).equals(params.type);
+      hasWhere = true;
+    }
+    await query.filter(note => this.__hasText(note, params.text))
+        .each(note => notes.push(newNoteSummary(note.uuid, note.title, note.tags, note.type, note.crypto)));
     return notes.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
   }
 
@@ -112,9 +125,8 @@ class NotesDB {
     await this.db.removed.put(newNoteStatus(uuid, date || new Date(), false));
   }
 
-  async export() {
+  async export(uuids) {
     let zip = new JSZip();
-    let uuids = await this.db.notes.orderBy("uuid").primaryKeys();
     for (let uuid of uuids) {
       let note = await this.get(uuid);
       let date = new Date(note.date.getTime() - note.date.getTimezoneOffset() * 60000); // fixes bug in JSZip: date is saved in UTC instead of local time
@@ -355,6 +367,7 @@ class NoteCrypto {
 
 const FILE_HEADER_START = "```yaml\n";
 const FILE_HEADER_END = "\n```\n\n";
+const types = {basic: "basic"};
 const local = new NotesDB();
 const remote = new NotesGDrive();
 const synchronizer = new NotesSynchronizer(local, remote);
@@ -362,6 +375,7 @@ const crypto = new NoteCrypto();
 
 
 export default {
+  types,
   local,
   remote,
   synchronizer,
