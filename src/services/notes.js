@@ -21,8 +21,8 @@ function newNote() {
 }
 
 
-function newNoteSummary(uuid, title, tags) {
-  return {uuid, title, tags};
+function newNoteSummary(uuid, title, tags, crypto) {
+  return {uuid, title, tags, crypto};
 }
 
 
@@ -34,6 +34,9 @@ function newNoteStatus(uuid, date, active) {
 function stringify(note) {
   let str = FILE_HEADER_START + "title: " + note.title + "\ntags:";
   note.tags.forEach(tag => str += "\n  - " + tag);
+  if (note.crypto) {
+    str += "\ncrypto:\n  salt: " + note.crypto.salt + "\n  iv: " + note.crypto.iv + "\n  hmac: " + note.crypto.hmac;
+  }
   return str + FILE_HEADER_END + note.text;
 }
 
@@ -46,8 +49,12 @@ function inflate(str, uuid, date) {
   let endPos = str.indexOf(FILE_HEADER_END);
   let header = str.slice(str.indexOf(FILE_HEADER_START) + FILE_HEADER_START.length, endPos);
   header = yaml.safeLoad(header, {schema: yaml.FAILSAFE_SCHEMA});
+
   note.title = header.title;
   note.tags = header.tags || [];
+  if (header.crypto) {
+    note.crypto = header.crypto;
+  }
   note.text = str.slice(endPos + FILE_HEADER_END.length);
 
   return note;
@@ -79,7 +86,7 @@ class NotesDB {
       query = query.where("tags").anyOfIgnoreCase(tags).distinct();
     }
     await query.filter(note => this.__hasText(note, text))
-        .each(note => notes.push(newNoteSummary(note.uuid, note.title, note.tags)));
+        .each(note => notes.push(newNoteSummary(note.uuid, note.title, note.tags, note.crypto)));
     return notes.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
   }
 
@@ -142,7 +149,7 @@ class NotesDB {
     text = text.toLowerCase();
     return note.title.toLowerCase().includes(text) ||
         note.tags.filter(tag => tag.toLowerCase().includes(text)).length > 0 ||
-        note.text.toLowerCase().includes(text);
+        (!note.crypto && note.text.toLowerCase().includes(text));
   }
 }
 
@@ -290,7 +297,7 @@ class NoteCrypto {
   }
 
   async key(pass, salt) {
-    return await argon2.hash({pass, salt, hashLen: 32, time: 50, mem: 1024, parallelism: 1,
+    return await argon2.hash({pass, salt, hashLen: 32, time: 10, mem: 1024, parallelism: 1,
         type: argon2.ArgonType.Argon2d, distPath: "js"});
   }
 
@@ -319,27 +326,29 @@ class NoteCrypto {
 
     let hmac = this.hmac(key.hashHex, [ivStr, cipher]);
 
-    note.enc_salt = saltStr;
-    note.enc_iv = ivStr;
-    note.enc_hmac = hmac;
+    note.crypto = {salt: saltStr, iv: ivStr, hmac};
     note.text = cipher;
+    return note;
   }
 
   async decrypt(note, pass) {
-    let key = await this.key(pass, aes.utils.hex.toBytes(note.enc_salt));
+    let key = await this.key(pass, aes.utils.hex.toBytes(note.crypto.salt));
 
-    let hmac = this.hmac(key.hashHex, [note.enc_iv, note.text]);
-    if (hmac !== note.enc_hmac) {
-      return false;
+    let hmac = this.hmac(key.hashHex, [note.crypto.iv, note.text]);
+    if (hmac !== note.crypto.hmac) {
+      return note;
     }
 
-    let iv = aes.utils.hex.toBytes(note.enc_iv);
+    let iv = aes.utils.hex.toBytes(note.crypto.iv);
     let cipher = base64.toByteArray(note.text);
     let cbc = new aes.ModeOfOperation.cbc(key.hash, iv);
     let buffer = Array.from(cbc.decrypt(cipher));
     let padding = buffer[buffer.length - 1];
     buffer.splice(buffer.length - padding, buffer.length);
-    return aes.utils.utf8.fromBytes(buffer);
+
+    delete note.crypto;
+    note.text = aes.utils.utf8.fromBytes(buffer);
+    return note;
   }
 }
 

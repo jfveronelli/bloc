@@ -3,6 +3,17 @@
     <v-navigation-drawer app clipped v-model="drawer">
       <v-list dense>
         <v-tooltip right>
+          <v-list-tile slot="activator" @click="passwordDialog = true">
+            <v-list-tile-action>
+              <v-icon>vpn_key</v-icon>
+            </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>Master password</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <span>Refresh the view at any time to clear the password</span>
+        </v-tooltip>
+        <v-tooltip right>
           <v-list-tile slot="activator" v-shortkey="['ctrl', 'i']" @shortkey="syncNotes()" @click="syncNotes()">
             <v-list-tile-action>
               <v-icon>sync</v-icon>
@@ -66,7 +77,10 @@
           <v-divider inset :key="i" v-if="i > 0"></v-divider>
           <v-list-tile avatar :key="note.title" @click="$router.push({name: 'read', params: {uuid: note.uuid}})">
             <v-list-tile-avatar>
-              <v-icon>notes</v-icon>
+              <v-badge overlap color="white">
+                <v-icon small v-if="note.crypto" slot="badge">lock</v-icon>
+                <v-icon>notes</v-icon>
+              </v-badge>
             </v-list-tile-avatar>
             <v-list-tile-content>
               <v-list-tile-title>{{ note.title }}</v-list-tile-title>
@@ -90,6 +104,21 @@
       </v-btn>
       <span>Add<br/>[ Ctrl A ]</span>
     </v-tooltip>
+
+    <v-dialog persistent v-model="passwordDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Master password</v-card-title>
+        <v-card-text>
+          <v-text-field required label="Password" :type="passwordShown? 'text': 'password'"
+              :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.$data.password"
+              @click:append="passwordShown = !passwordShown"></v-text-field>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn flat @click="closePasswordDialog()">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog persistent v-model="syncDialog" max-width="400">
       <v-card>
@@ -129,6 +158,8 @@
       drawer: null,
       drawerTag: true,
       search: false,
+      passwordDialog: false,
+      passwordShown: false,
       syncDialog: false,
       wipeDialog: false,
       tags: [],
@@ -187,8 +218,14 @@
       wipeNotes() {
         notes.local.wipe();
         notes.remote.updateToken();
+        this.$root.$data.password = "";
+        this.$root.$data.searchText = "";
         this.refreshTagsAndNotes();
         this.wipeDialog = false;
+      },
+      closePasswordDialog() {
+        this.passwordShown = false;
+        this.passwordDialog = false;
       }
     }
   };

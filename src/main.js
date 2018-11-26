@@ -44,7 +44,8 @@ new Vue({
   router: new Router({routes}),
   data: {
     selectedTags: [],
-    searchText: ""
+    searchText: "",
+    password: ""
   },
   render: html => html(App)
 }).$mount("#app");

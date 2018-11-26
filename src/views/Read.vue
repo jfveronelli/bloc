@@ -4,7 +4,7 @@
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-tooltip bottom>
-        <v-btn flat icon slot="activator" v-shortkey="['ctrl', 'e']" @shortkey="editNote()" @click.stop="editNote()">
+        <v-btn flat icon slot="activator" :disabled="loading" v-shortkey="['ctrl', 'e']" @shortkey="editNote()" @click.stop="editNote()">
           <v-icon>edit</v-icon>
         </v-btn>
         <span>Edit<br/>[ Ctrl E ]</span>
@@ -28,14 +28,18 @@
         <v-card >
           <v-card-title>
             <div>
-              <div class="headline font-weight-medium">{{ note.title }}</div>
+              <div class="headline font-weight-medium">
+                <span v-if="noteEncrypted" class="mr-3"><v-icon>lock</v-icon></span>
+                <span>{{ note.title }}</span>
+              </div>
               <v-chip small class="body-1" color="primary" text-color="white" v-for="tag in note.tags" :key="tag">
                 {{ tag }}
               </v-chip>
             </div>
           </v-card-title>
           <v-card-text>
-            <div class="markdown-body" v-html="noteText"></div>
+            <div v-if="!loading" class="markdown-body" v-html="noteText"></div>
+            <p v-else-if="noteEncrypted" class="headline text-lg-center">[ Content is encrypted: set or update the master password ]</p>
           </v-card-text>
         </v-card>
       </v-flex>
@@ -64,14 +68,25 @@
     data: () => ({
       uuid: null,
       note: notes.new(),
+      noteEncrypted: false,
       noteText: "",
+      loading: true,
       removeDialog: false
     }),
     created() {
       this.uuid = this.$route.params.uuid;
       notes.local.get(this.uuid).then(note => {
         this.note = note;
-        this.noteText = marked(note.text);
+        this.noteEncrypted = !!note.crypto;
+        if (note.crypto && this.$root.$data.password) {
+          return notes.crypto.decrypt(note, this.$root.$data.password);
+        }
+        return note;
+      }).then(note => {
+        if (!note.crypto) {
+          this.noteText = marked(note.text);
+          this.loading = false;
+        }
       });
     },
     methods: {
