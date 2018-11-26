@@ -46,7 +46,7 @@
               <v-list-tile-title>Tags</v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
-          <v-list-tile v-for="(tag, i) in tags" :key="i" @click="toggleTagFilter(tag)">
+          <v-list-tile v-for="tag in tags" :key="'tag_filter_' + tag" @click="toggleTagFilter(tag)">
             <v-list-tile-action>
               <v-icon v-if="$root.$data.selectedTags.includes(tag)" color="yellow">label</v-icon>
               <v-icon v-else>label</v-icon>
@@ -64,7 +64,8 @@
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-slide-x-transition>
-        <v-text-field flat solo clearable hide-details prepend-inner-icon="search" label="Search" v-model="$root.$data.searchText" v-if="search" v-on:input="refreshNotes()"/>
+        <v-text-field flat solo clearable hide-details prepend-inner-icon="search" label="Search" v-if="search"
+            v-model="$root.$data.searchText" v-on:input="refreshNotes()"/>
       </v-slide-x-transition>
       <v-btn flat icon v-if="!search" @click.stop="search = !search">
         <v-icon>search</v-icon>
@@ -77,8 +78,8 @@
           <v-card-text>
             <v-list>
               <template v-for="(note, i) in notes">
-                <v-divider inset :key="i" v-if="i > 0"></v-divider>
-                <v-list-tile avatar :key="note.title" @click="$router.push({name: 'read', params: {uuid: note.uuid}})">
+                <v-divider inset v-if="i > 0" :key="'note_divider_' + note.uuid"></v-divider>
+                <v-list-tile avatar :key="'note_' + note.uuid" @click="$router.push({name: 'read', params: {uuid: note.uuid}})">
                   <v-list-tile-avatar>
                     <v-badge overlap color="white">
                       <v-icon small v-if="note.crypto" slot="badge">lock</v-icon>
@@ -88,7 +89,8 @@
                   <v-list-tile-content>
                     <v-list-tile-title>{{ note.title }}</v-list-tile-title>
                     <v-list-tile-sub-title>
-                      <v-chip disabled small text-color="black" v-for="(tag, i) in note.tags" :key="i">{{ tag }}</v-chip>
+                      <v-chip disabled small text-color="black"
+                          v-for="tag in note.tags" :key="'note_' + note.uuid + '_tag_' + tag">{{ tag }}</v-chip>
                     </v-list-tile-sub-title>
                   </v-list-tile-content>
                   <v-list-tile-action>
@@ -190,11 +192,12 @@
     }),
     created() {
       this.search = !!this.$root.$data.searchText;
-      this.refreshTagsAndNotes().then(() => {
-        if (this.$route.query.sync) {
-          this.syncNotes();
-        }
-      });
+      if (this.$route.query.sync) {
+        this.$router.replace({name: "home"});
+        this.syncNotes();
+      } else {
+        this.refreshTagsAndNotes();
+      }
     },
     methods: {
       toggleTagFilter(tag) {
@@ -205,14 +208,15 @@
         }
         this.refreshNotes();
       },
-      async refreshTagsAndNotes() {
-        let list = await notes.local.tags();
-        this.$root.$data.selectedTags = this.$root.$data.selectedTags.filter(tag => list.includes(tag));
-        this.tags = list;
-        this.refreshNotes();
+      refreshTagsAndNotes() {
+        notes.local.tags().then(tags => {
+          this.$root.$data.selectedTags = this.$root.$data.selectedTags.filter(selected => tags.includes(selected));
+          this.tags = tags;
+          this.refreshNotes();
+        });
       },
       refreshNotes() {
-        let params = {tags: this.$root.$data.selectedTags, text: this.$root.$data.searchText};
+        let params = {tags: this.$root.$data.selectedTags.slice(), text: this.$root.$data.searchText};
         notes.local.list(params).then(list => this.notes = list);
       },
       createNote() {
@@ -238,6 +242,8 @@
           }).catch(error => {
             if (error.response && error.response.status === 401) {
               notes.remote.requestToken();
+            } else {
+              throw error;
             }
           });
         }

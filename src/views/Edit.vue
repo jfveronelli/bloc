@@ -95,7 +95,7 @@
     name: "edit",
     data: () => ({
       uuid: null,
-      note: notes.new(),
+      note: notes.model.note(),
       noteEncrypted: false,
       tags: [],
       stage: "loading",

@@ -10,70 +10,71 @@ import argon2 from "argon2-browser";
 window.argon2 = argon2;
 
 
-function newNote() {
-  return {
-    uuid: uuid().replace(/-/g, ""),
-    date: new Date(),
-    title: "",
-    tags: [],
-    type: types.basic,
-    text: ""
-  };
-}
-
-
-function newNoteSummary(uuid, title, tags, type, crypto) {
-  return {uuid, title, tags, type, crypto};
-}
-
-
-function newNoteStatus(uuid, date, active) {
-  return {uuid, date, active};
-}
-
-
-function stringify(note) {
-  let str = FILE_HEADER_START + "title: " + note.title + "\ntags:";
-  note.tags.forEach(tag => str += "\n  - " + tag);
-  if (note.type !== types.basic) {
-    str += "\ntype: " + note.type;
-  }
-  if (note.crypto) {
-    str += "\ncrypto:\n  salt: " + note.crypto.salt + "\n  iv: " + note.crypto.iv + "\n  hmac: " + note.crypto.hmac;
-  }
-  return str + FILE_HEADER_END + note.text;
-}
-
-
-function inflate(str, uuid, date) {
-  let note = newNote();
-  note.uuid = uuid;
-  note.date = date;
-
-  let endPos = str.indexOf(FILE_HEADER_END);
-  let header = str.slice(str.indexOf(FILE_HEADER_START) + FILE_HEADER_START.length, endPos);
-  header = yaml.safeLoad(header, {schema: yaml.FAILSAFE_SCHEMA});
-
-  note.title = header.title;
-  note.tags = header.tags || [];
-  if (header.type) {
-    note.type = header.type;
-  }
-  if (header.crypto) {
-    note.crypto = header.crypto;
-  }
-  note.text = str.slice(endPos + FILE_HEADER_END.length);
-
-  return note;
-}
-
-
 function localDate() {
   let now = new Date();
   let year = ("" + now.getFullYear()).padStart(4, "0");
   let month = ("" + (now.getMonth() + 1)).padStart(2, "0");
   let day = ("" + now.getDate()).padStart(2, "0");
   return year + month + day;
+}
+
+
+class Model {
+  constructor() {
+    this.FILE_HEADER_START = "```yaml\n";
+    this.FILE_HEADER_END = "\n```\n\n";
+    this.types = {basic: "basic"};
+  }
+
+  note() {
+    return {
+      uuid: uuid().replace(/-/g, ""),
+      date: new Date(),
+      title: "",
+      tags: [],
+      type: this.types.basic,
+      text: ""
+    };
+  }
+
+  summary(uuid, title, tags, type, crypto) {
+    return {uuid, title, tags, type, crypto};
+  }
+
+  status(uuid, date, active) {
+    return {uuid, date, active};
+  }
+
+  note2str(note) {
+    let header = {title: note.title, tags: note.tags};
+    if (note.type !== this.types.basic) {
+      header.type = note.type;
+    }
+    header = yaml.safeDump(header, {schema: yaml.FAILSAFE_SCHEMA}).trim();
+    return this.FILE_HEADER_START + header + this.FILE_HEADER_END + note.text;
+  }
+
+  str2note(str, uuid, date) {
+    let note = this.note();
+    note.uuid = uuid;
+    note.date = date;
+
+    let endPos = str.indexOf(this.FILE_HEADER_END);
+    let header = str.slice(str.indexOf(this.FILE_HEADER_START) + this.FILE_HEADER_START.length, endPos);
+    header = yaml.safeLoad(header, {schema: yaml.FAILSAFE_SCHEMA});
+
+    note.title = header.title;
+    note.tags = header.tags || [];
+    if (header.type) {
+      note.type = header.type;
+    }
+    if (header.crypto) {
+      note.crypto = header.crypto;
+    }
+    note.text = str.slice(endPos + this.FILE_HEADER_END.length);
+
+    return note;
+  }
 }
 
 
@@ -99,7 +100,7 @@ class NotesDB {
       hasWhere = true;
     }
     await query.filter(note => this.__hasText(note, params.text))
-        .each(note => notes.push(newNoteSummary(note.uuid, note.title, note.tags, note.type, note.crypto)));
+        .each(note => notes.push(model.summary(note.uuid, note.title, note.tags, note.type, note.crypto)));
     return notes.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
   }
 
@@ -122,7 +123,7 @@ class NotesDB {
 
   async remove(uuid, date) {
     await this.db.notes.delete(uuid);
-    await this.db.removed.put(newNoteStatus(uuid, date || new Date(), false));
+    await this.db.removed.put(model.status(uuid, date || new Date(), false));
   }
 
   async export(uuids) {
@@ -130,7 +131,7 @@ class NotesDB {
     for (let uuid of uuids) {
       let note = await this.get(uuid);
       let date = new Date(note.date.getTime() - note.date.getTimezoneOffset() * 60000); // fixes bug in JSZip: date is saved in UTC instead of local time
-      zip.file(uuid + ".md", stringify(note), {date})
+      zip.file(uuid + ".md", model.note2str(note), {date})
     }
     let options = {
       type: "blob",
@@ -145,7 +146,7 @@ class NotesDB {
   async state() {
     let map = new Map();
     await this.db.removed.each(status => map.set(status.uuid, status));
-    await this.db.notes.each(note => map.set(note.uuid, newNoteStatus(note.uuid, note.date, true)));
+    await this.db.notes.each(note => map.set(note.uuid, model.status(note.uuid, note.date, true)));
     return map;
   }
 
@@ -201,26 +202,26 @@ class NotesGDrive {
     let uuid = file.name.slice(0, file.name.indexOf("."));
     let date = new Date(file.modifiedTime);
     this.cache.set(uuid, {id: file.id, date});
-    return newNoteStatus(uuid, date, active);
+    return model.status(uuid, date, active);
   }
 
   async get(uuid) {
     let cached = this.cache.get(uuid);
     let result = await this.http.get("/drive/v3/files/" + cached.id + "?alt=media", {responseType: "text"});
-    return inflate(result.data, uuid, cached.date);
+    return model.str2note(result.data, uuid, cached.date);
   }
 
   async add(note) {
     let headers = {"Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": "text/plain; charset=UTF-8"};
     let data = {name: note.uuid + ".md", modifiedTime: note.date, parents: this.parents};
     let result = await this.http.post("/upload/drive/v3/files?uploadType=resumable", data, {headers});
-    await this.http.put(result.headers.location, stringify(note));
+    await this.http.put(result.headers.location, model.note2str(note));
   }
 
   async update(note) {
     let cached = this.cache.get(note.uuid);
     let headers = {"Content-Type": "text/plain"};
-    await this.http.patch("/upload/drive/v3/files/" + cached.id + "?uploadType=media", stringify(note), {headers});
+    await this.http.patch("/upload/drive/v3/files/" + cached.id + "?uploadType=media", model.note2str(note), {headers});
     await this.http.patch("/drive/v3/files/" + cached.id, {name: note.uuid + ".md", modifiedTime: note.date});
   }
 
@@ -365,9 +366,7 @@ class NoteCrypto {
 }
 
 
-const FILE_HEADER_START = "```yaml\n";
-const FILE_HEADER_END = "\n```\n\n";
-const types = {basic: "basic"};
+const model = new Model();
 const local = new NotesDB();
 const remote = new NotesGDrive();
 const synchronizer = new NotesSynchronizer(local, remote);
@@ -375,11 +374,10 @@ const crypto = new NoteCrypto();
 
 
 export default {
-  types,
+  model,
   local,
   remote,
   synchronizer,
   crypto,
-  new: newNote,
   localDate
 };
