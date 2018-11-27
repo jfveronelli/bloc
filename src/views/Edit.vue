@@ -3,7 +3,7 @@
     <v-toolbar app clipped-left>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
-      <v-tooltip bottom>
+      <v-tooltip bottom :disabled="$root.$data.isMobile">
         <v-btn flat icon slot="activator" :disabled="stage !== 'loaded'" @click.stop="noteEncrypted = !noteEncrypted">
           <v-icon v-if="noteEncrypted">lock_open</v-icon>
           <v-icon v-else>lock</v-icon>
@@ -11,13 +11,13 @@
         <span v-if="noteEncrypted">Unlock</span>
         <span v-else>Lock</span>
       </v-tooltip>
-      <v-tooltip bottom>
+      <v-tooltip bottom :disabled="$root.$data.isMobile">
         <v-btn flat icon slot="activator" :disabled="stage !== 'loaded'" v-shortkey="['ctrl', 's']" @shortkey="saveNote()" @click.stop="saveNote()">
           <v-icon>save</v-icon>
         </v-btn>
         <span>Save<br/>[ Ctrl S ]</span>
       </v-tooltip>
-      <v-tooltip bottom>
+      <v-tooltip bottom :disabled="$root.$data.isMobile">
         <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancelDialog = true" @click.stop="cancelDialog = true">
           <v-icon>keyboard_backspace</v-icon>
         </v-btn>
@@ -33,7 +33,7 @@
               <v-text-field label="Title" v-model="note.title"/>
               <v-combobox multiple chips clearable label="Tags" v-model="note.tags" :items="tags">
                 <template slot="selection" slot-scope="data">
-                  <v-chip close :selected="data.selected" @input="removeTag(data.item)">
+                  <v-chip small close class="caption" :selected="data.selected" @input="removeTag(data.item)">
                     <strong>{{ data.item }}</strong>
                   </v-chip>
                 </template>
@@ -47,10 +47,10 @@
                   </v-list-tile>
                 </template>
               </v-combobox>
-              <v-textarea auto-grow rows="10" label="Content" v-model="note.text"></v-textarea>
+              <v-textarea rows="20" label="Content" v-model="note.text"></v-textarea>
             </div>
             <div v-else>
-              <p class="text-lg-center">
+              <p class="text-xs-center">
                 <v-progress-circular indeterminate color="primary" :size="70" :width="7"></v-progress-circular>
               </p>
             </div>

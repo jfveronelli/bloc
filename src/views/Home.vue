@@ -2,18 +2,15 @@
   <v-container fluid>
     <v-navigation-drawer app clipped v-model="drawer">
       <v-list dense>
-        <v-tooltip right>
-          <v-list-tile slot="activator" @click="passwordDialog = true">
-            <v-list-tile-action>
-              <v-icon>vpn_key</v-icon>
-            </v-list-tile-action>
-            <v-list-tile-content>
-              <v-list-tile-title>Password</v-list-tile-title>
-            </v-list-tile-content>
-          </v-list-tile>
-          <span>Refresh the view at any time to clear the password</span>
-        </v-tooltip>
-        <v-tooltip right>
+        <v-list-tile @click="passwordDialog = true">
+          <v-list-tile-action>
+            <v-icon>vpn_key</v-icon>
+          </v-list-tile-action>
+          <v-list-tile-content>
+            <v-list-tile-title>Password</v-list-tile-title>
+          </v-list-tile-content>
+        </v-list-tile>
+        <v-tooltip right :disabled="$root.$data.isMobile">
           <v-list-tile slot="activator" v-shortkey="['ctrl', 'i']" @shortkey="syncNotes()" @click="syncNotes()">
             <v-list-tile-action>
               <v-icon>sync</v-icon>
@@ -89,11 +86,11 @@
                   <v-list-tile-content>
                     <v-list-tile-title>{{ note.title }}</v-list-tile-title>
                     <v-list-tile-sub-title>
-                      <v-chip disabled small text-color="black"
+                      <v-chip disabled small text-color="black" class="caption"
                           v-for="tag in note.tags" :key="'note_' + note.uuid + '_tag_' + tag">{{ tag }}</v-chip>
                     </v-list-tile-sub-title>
                   </v-list-tile-content>
-                  <v-list-tile-action>
+                  <v-list-tile-action class="hidden-sm-and-down">
                     <v-btn flat icon @click.stop="openRemoveDialog(note)">
                       <v-icon>delete</v-icon>
                     </v-btn>
@@ -106,7 +103,7 @@
       </v-flex>
     </v-layout>
 
-    <v-tooltip top>
+    <v-tooltip top :disabled="$root.$data.isMobile">
       <v-btn fab fixed bottom right dark color="pink" slot="activator" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
         <v-icon>add</v-icon>
       </v-btn>
@@ -117,9 +114,15 @@
       <v-card>
         <v-card-title class="headline">Password</v-card-title>
         <v-card-text>
-          <v-text-field required label="Password" :type="passwordShown? 'text': 'password'"
-              :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.$data.password"
-              @click:append="passwordShown = !passwordShown"></v-text-field>
+          <div>
+            <v-text-field required label="Password" :type="passwordShown? 'text': 'password'"
+                :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.$data.password"
+                @click:append="passwordShown = !passwordShown"></v-text-field>
+          </div>
+          <div class="caption">
+            <v-icon small>message</v-icon>
+            <span class="bl-space-left">For security reasons, any view refresh will clear the password</span>
+          </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -144,7 +147,7 @@
         <v-card-title class="headline">Remove all</v-card-title>
         <v-card-text class="subheading text-xs-center">
           <div>Are you sure you want to continue?</div>
-          <div>All local data will be removed.</div>
+          <div>All local data and settings will be removed.</div>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -174,6 +177,7 @@
 <script>
   import saveAs from "file-saver";
   import notes from "@/services/notes";
+  import utils from "@/services/utils";
 
   export default {
     name: "home",
@@ -229,7 +233,7 @@
       },
       exportNotes() {
         let uuids = this.notes.map(note => note.uuid);
-        notes.local.export(uuids).then(blob => saveAs(blob, "notes-" + notes.localDate() + ".zip"));
+        notes.local.export(uuids).then(blob => saveAs(blob, "notes-" + utils.localDate() + ".zip"));
       },
       syncNotes() {
         if (!notes.remote.token()) {
@@ -267,3 +271,8 @@
     }
   };
 </script>
+
+<style scoped lang="stylus">
+  .bl-space-left
+    margin-left 5px
+</style>

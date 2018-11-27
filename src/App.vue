@@ -12,19 +12,39 @@
   };
 </script>
 
-<!--style lang="stylus">
+<style lang="stylus">
   #app
-    font-family 'Avenir', Helvetica, Arial, sans-serif
-    -webkit-font-smoothing antialiased
-    -moz-osx-font-smoothing grayscale
-    text-align center
-    color #2c3e50
 
-  #nav
-    padding 30px
-    a
-      font-weight bold
-      color #2c3e50
-      &.router-link-exact-active
-        color #42b983
-</style-->
+    .v-chip.theme--light
+      background-color #eee
+
+    .v-chip--small
+      height 14px
+
+      &.v-chip--removable
+        height 22px
+
+      .v-chip__content
+        padding: 0 5px
+
+    @media screen and (max-width 520px)
+
+      .v-content
+
+        .container
+          padding 0
+
+        .v-card__title
+        .v-card__text
+          padding 6px
+
+          .v-list__tile
+            padding 0
+
+          .v-list__tile__avatar
+            min-width 46px
+
+          .v-divider--inset:not(.v-divider--vertical)
+            margin 0
+            max-width: 100%
+</style>

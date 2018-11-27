@@ -3,13 +3,13 @@ import Router from "vue-router";
 import Vuetify from "vuetify/lib";
 import "vuetify/src/stylus/app.styl";
 import VueShortKey from "vue-shortkey";
-import "github-markdown-css";
 import App from "@/App.vue";
 import Home from "@/views/Home.vue";
+import utils from "@/services/utils";
 import "@/registerServiceWorker";
 
 Vue.use(Router);
-Vue.use(Vuetify, {iconfont: "md"});
+Vue.use(Vuetify);
 Vue.use(VueShortKey);
 
 const routes = [
@@ -43,6 +43,7 @@ const routes = [
 new Vue({
   router: new Router({routes}),
   data: {
+    isMobile: utils.isMobile,
     selectedTags: [],
     searchText: "",
     password: ""

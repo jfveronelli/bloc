@@ -3,19 +3,19 @@
     <v-toolbar app clipped-left>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
-      <v-tooltip bottom>
+      <v-tooltip bottom :disabled="$root.$data.isMobile">
         <v-btn flat icon slot="activator" :disabled="stage !== 'loaded'" v-shortkey="['ctrl', 'e']" @shortkey="editNote()" @click.stop="editNote()">
           <v-icon>edit</v-icon>
         </v-btn>
         <span>Edit<br/>[ Ctrl E ]</span>
       </v-tooltip>
-      <v-tooltip bottom>
+      <v-tooltip bottom :disabled="$root.$data.isMobile">
         <v-btn flat icon slot="activator" v-shortkey="['ctrl', 'd']" @shortkey="removeDialog = true" @click.stop="removeDialog = true">
           <v-icon>delete</v-icon>
         </v-btn>
         <span>Remove<br/>[ Ctrl D ]</span>
       </v-tooltip>
-      <v-tooltip bottom>
+      <v-tooltip bottom :disabled="$root.$data.isMobile">
         <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancel()" @click.stop="cancel()">
           <v-icon>keyboard_backspace</v-icon>
         </v-btn>
@@ -26,23 +26,25 @@
     <v-layout justify-center>
       <v-flex xs12 md10 lg8>
         <v-card>
-          <v-card-title>
-            <div v-if="stage === 'loaded' || stage === 'locked'">
-              <div class="headline font-weight-medium">
+          <v-card-title v-if="stage === 'loaded' || stage === 'locked'">
+            <div>
+              <div class="title">
                 <span v-if="noteEncrypted" class="mr-3"><v-icon>lock</v-icon></span>
                 <span>{{ note.title }}</span>
               </div>
-              <v-chip small class="body-1" color="primary" text-color="white" v-for="tag in note.tags" :key="tag">
-                {{ tag }}
-              </v-chip>
+              <div class="bl-subtitle">
+                <v-chip small class="caption" color="primary" text-color="white" v-for="tag in note.tags" :key="tag">
+                  {{ tag }}
+                </v-chip>
+              </div>
             </div>
           </v-card-title>
           <v-card-text>
-            <div v-if="stage === 'loaded'" class="markdown-body" v-html="noteText"></div>
-            <p v-else-if="stage === 'locked'" class="headline text-lg-center">
+            <div v-if="stage === 'loaded'" v-html="noteText"></div>
+            <p v-else-if="stage === 'locked'" class="headline text-xs-center">
               [ Content is encrypted: password is not set or is invalid ]
             </p>
-            <p v-else class="text-lg-center">
+            <p v-else class="text-xs-center">
               <v-progress-circular indeterminate color="primary" :size="70" :width="7"></v-progress-circular>
             </p>
           </v-card-text>
@@ -116,3 +118,8 @@
     }
   };
 </script>
+
+<style scoped lang="stylus">
+  .bl-subtitle
+    margin-top 4px
+</style>

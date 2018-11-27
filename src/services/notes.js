@@ -10,15 +10,6 @@ import argon2 from "argon2-browser";
 window.argon2 = argon2;
 
 
-function localDate() {
-  let now = new Date();
-  let year = ("" + now.getFullYear()).padStart(4, "0");
-  let month = ("" + (now.getMonth() + 1)).padStart(2, "0");
-  let day = ("" + now.getDate()).padStart(2, "0");
-  return year + month + day;
-}
-
-
 class Model {
   constructor() {
     this.FILE_HEADER_START = "```yaml\n";
@@ -378,6 +369,5 @@ export default {
   local,
   remote,
   synchronizer,
-  crypto,
-  localDate
+  crypto
 };
