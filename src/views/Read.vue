@@ -40,7 +40,7 @@
             </div>
           </v-card-title>
           <v-card-text>
-            <div v-if="stage === 'loaded'" v-html="noteText"></div>
+            <div v-if="stage === 'loaded'" class="bl-markdown" v-html="noteText"></div>
             <p v-else-if="stage === 'locked'" class="headline text-xs-center">
               [ Content is encrypted: password is not set or is invalid ]
             </p>
@@ -122,4 +122,7 @@
 <style scoped lang="stylus">
   .bl-subtitle
     margin-top 4px
+
+  .bl-markdown
+    overflow-wrap break-word
 </style>

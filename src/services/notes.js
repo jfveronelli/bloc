@@ -7,6 +7,7 @@ import base64 from "base64-js";
 import {sha256} from "js-sha256";
 import aes from "aes-js";
 import argon2 from "argon2-browser";
+import utils from "@/services/utils";
 window.argon2 = argon2;
 
 
@@ -17,19 +18,28 @@ class Model {
     this.types = {basic: "basic"};
   }
 
-  note() {
+  note(note) {
+    note = note || {};
     return {
-      uuid: uuid().replace(/-/g, ""),
-      date: new Date(),
-      title: "",
-      tags: [],
-      type: this.types.basic,
-      text: ""
+      uuid: note.uuid || uuid().replace(/-/g, ""),
+      date: note.date || new Date(),
+      title: note.title || "",
+      tags: note.tags? note.tags.slice(): [],
+      type: note.type || this.types.basic,
+      crypto: note.crypto? {salt: note.crypto.salt, iv: note.crypto.iv, hmac: note.crypto.hmac}: null,
+      text: note.text || ""
     };
   }
 
-  summary(uuid, title, tags, type, crypto) {
-    return {uuid, title, tags, type, crypto};
+  summary(note) {
+    return {
+      uuid: note.uuid,
+      date: note.date,
+      title: note.title,
+      tags: note.tags.slice(),
+      type: note.type,
+      crypto: note.crypto? {salt: note.crypto.salt, iv: note.crypto.iv, hmac: note.crypto.hmac}: null
+    };
   }
 
   status(uuid, date, active) {
@@ -40,6 +50,9 @@ class Model {
     let header = {title: note.title, tags: note.tags};
     if (note.type !== this.types.basic) {
       header.type = note.type;
+    }
+    if (note.crypto) {
+      header.crypto = crypto;
     }
     header = yaml.safeDump(header, {schema: yaml.FAILSAFE_SCHEMA}).trim();
     return this.FILE_HEADER_START + header + this.FILE_HEADER_END + note.text;
@@ -83,21 +96,23 @@ class NotesDB {
     let query = this.db.notes;
     let hasWhere = false;
     if (params.tags && params.tags.length > 0) {
-      query = query.where("tags").anyOfIgnoreCase(params.tags).distinct();
+      query = query.where("tags").anyOf(params.tags).distinct();
       hasWhere = true;
     }
     if (params.type) {
       query = (hasWhere? query.and("type"): query.where("type")).equals(params.type);
       hasWhere = true;
     }
-    await query.filter(note => this.__hasText(note, params.text))
-        .each(note => notes.push(model.summary(note.uuid, note.title, note.tags, note.type, note.crypto)));
-    return notes.sort((a, b) => a.title.toLowerCase().localeCompare(b.title.toLowerCase()));
+    if (params.text) {
+      query = query.filter(note => this.__hasText(note, params.text));
+    }
+    await query.each(note => notes.push(model.summary(note)));
+    return notes.sort((a, b) => utils.fuzzyCompare(a.title, b.title));
   }
 
   async tags() {
     let tags = await this.db.notes.orderBy("tags").uniqueKeys();
-    return tags.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    return tags.sort((a, b) => utils.fuzzyCompare(a, b));
   }
 
   async get(uuid) {
@@ -147,13 +162,9 @@ class NotesDB {
   }
 
   __hasText(note, text) {
-    if (!text) {
-      return true;
-    }
-    text = text.toLowerCase();
-    return note.title.toLowerCase().includes(text) ||
-        note.tags.filter(tag => tag.toLowerCase().includes(text)).length > 0 ||
-        (!note.crypto && note.text.toLowerCase().includes(text));
+    let isPhrase = utils.isPhrase(text);
+    return isPhrase.in(note.title) || note.tags.filter(tag => isPhrase.in(tag)).length > 0 ||
+        (!note.crypto && isPhrase.in(note.text));
   }
 }
 
@@ -350,7 +361,7 @@ class NoteCrypto {
     let padding = buffer[buffer.length - 1];
     buffer.splice(buffer.length - padding, buffer.length);
 
-    delete note.crypto;
+    note.crypto = null;
     note.text = aes.utils.utf8.fromBytes(buffer);
     return note;
   }
