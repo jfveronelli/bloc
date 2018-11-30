@@ -62,7 +62,7 @@
       <v-spacer/>
       <v-slide-x-transition>
         <v-text-field flat solo clearable hide-details prepend-inner-icon="search" label="Search" v-if="search"
-            v-model="$root.$data.searchText" v-on:input="refreshNotes()"/>
+            v-model="$root.$data.searchText" v-on:input="searchTextChanged()"/>
       </v-slide-x-transition>
       <v-btn flat icon v-if="!search" @click.stop="search = !search">
         <v-icon>search</v-icon>
@@ -151,7 +151,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn flat color="error" @click="wipeNotes()">Yes</v-btn>
+          <v-btn flat color="error" @click="wipeAll()">Yes</v-btn>
           <v-btn flat @click="wipeDialog = false">No</v-btn>
         </v-card-actions>
       </v-card>
@@ -205,16 +205,24 @@
     },
     methods: {
       toggleTagFilter(tag) {
-        if (this.$root.$data.selectedTags.includes(tag)) {
-          this.$root.$data.selectedTags.splice(this.$root.$data.selectedTags.indexOf(tag), 1);
+        let selectedTags = this.$root.$data.selectedTags;
+        if (selectedTags.includes(tag)) {
+          selectedTags.splice(selectedTags.indexOf(tag), 1);
         } else {
-          this.$root.$data.selectedTags.push(tag);
+          selectedTags.push(tag);
         }
+        utils.settings.updateSelectedTags(selectedTags);
+        this.refreshNotes();
+      },
+      searchTextChanged() {
+        utils.settings.updateSearchText(this.$root.$data.searchText);
         this.refreshNotes();
       },
       refreshTagsAndNotes() {
         notes.local.tags().then(tags => {
-          this.$root.$data.selectedTags = this.$root.$data.selectedTags.filter(selected => tags.includes(selected));
+          let selectedTags = this.$root.$data.selectedTags.filter(selected => tags.includes(selected));
+          this.$root.$data.selectedTags = selectedTags;
+          utils.settings.updateSelectedTags(selectedTags);
           this.tags = tags;
           this.refreshNotes();
         });
@@ -252,11 +260,12 @@
           });
         }
       },
-      wipeNotes() {
+      wipeAll() {
         notes.local.wipe();
         notes.remote.updateToken();
-        this.$root.$data.password = "";
+        utils.settings.wipe();
         this.$root.$data.searchText = "";
+        this.$root.$data.password = "";
         this.refreshTagsAndNotes();
         this.wipeDialog = false;
       },

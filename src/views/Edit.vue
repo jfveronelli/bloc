@@ -96,6 +96,7 @@
     data: () => ({
       uuid: null,
       note: notes.model.note(),
+      noteWasEncrypted: false,
       noteEncrypted: false,
       tags: [],
       stage: "loading",
@@ -112,7 +113,9 @@
       }
       notes.local.get(this.uuid).then(note => {
         this.note = note;
-        this.noteEncrypted = !!note.crypto;
+        let encrypted = !!note.crypto;
+        this.noteWasEncrypted = encrypted;
+        this.noteEncrypted = encrypted;
         if (note.crypto && this.$root.$data.password) {
           return notes.crypto.decrypt(note, this.$root.$data.password);
         }
@@ -132,7 +135,7 @@
       saveNote() {
         this.note.date = new Date();
         if (this.noteEncrypted) {
-          if (!this.uuid || !this.$root.$data.password) {
+          if (!this.noteWasEncrypted || !this.$root.$data.password) {
             this.passwordDialog = true;
           } else {
             this.__saveNoteStep2();

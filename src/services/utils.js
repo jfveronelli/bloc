@@ -30,13 +30,44 @@ class IsPhrase {
 }
 
 
+class Settings {
+  selectedTags() {
+    let tags = localStorage.selectedTags;
+    return tags? tags.split("\n"): [];
+  }
+
+  updateSelectedTags(tags) {
+    if (tags && tags.length > 0) {
+      localStorage.selectedTags = tags.join("\n");
+    } else {
+      localStorage.removeItem("selectedTags");
+    }
+  }
+
+  searchText() {
+    return localStorage.searchText || "";
+  }
+
+  updateSearchText(text) {
+    localStorage.searchText = text || "";
+  }
+
+  wipe() {
+    localStorage.removeItem("selectedTags");
+    localStorage.removeItem("searchText");
+  }
+}
+
+
 const STR_REPLACEMENTS = [[/á/g, "a"], [/é/g, "e"], [/í/g, "i"], [/ó/g, "o"], [/ú/g, "u"]];
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent);
+const settings = new Settings();
 
 
 export default {
   localDate,
   fuzzyCompare,
   isPhrase: phrase => new IsPhrase(phrase),
-  isMobile
+  isMobile,
+  settings
 };
