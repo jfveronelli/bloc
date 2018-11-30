@@ -2,7 +2,7 @@
   <v-container fluid>
     <v-navigation-drawer app clipped v-model="drawer">
       <v-list dense>
-        <v-list-tile @click="passwordDialog = true">
+        <v-list-tile @click="openPasswordDialog()">
           <v-list-tile-action>
             <v-icon>vpn_key</v-icon>
           </v-list-tile-action>
@@ -29,7 +29,7 @@
             <v-list-tile-title>Export all listed</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
-        <v-list-tile @click="wipeDialog = true">
+        <v-list-tile @click="openWipeDialog()">
           <v-list-tile-action>
             <v-icon>layers_clear</v-icon>
           </v-list-tile-action>
@@ -73,6 +73,9 @@
       <v-flex xs12 md10 lg8>
         <v-card v-if="notes.length > 0">
           <v-card-text>
+            <div class="text-xs-right caption">
+              {{notes.length}} notes
+            </div>
             <v-list>
               <template v-for="(note, i) in notes">
                 <v-divider inset v-if="i > 0" :key="'note_divider_' + note.uuid"></v-divider>
@@ -126,7 +129,7 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn flat @click="closePasswordDialog()">Close</v-btn>
+          <v-btn flat @click="passwordDialog = false">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -240,10 +243,12 @@
         this.removeDialog = false;
       },
       exportNotes() {
+        this.closeMiniDrawer();
         let uuids = this.notes.map(note => note.uuid);
-        notes.local.export(uuids).then(blob => saveAs(blob, "notes-" + utils.localDate() + ".zip"));
+        notes.local.export(uuids).then(blob => saveAs(blob, "bloc-" + utils.localDate() + ".zip"));
       },
       syncNotes() {
+        this.closeMiniDrawer();
         if (!notes.remote.token()) {
           notes.remote.requestToken();
         } else {
@@ -269,13 +274,23 @@
         this.refreshTagsAndNotes();
         this.wipeDialog = false;
       },
+      closeMiniDrawer() {
+        if (["xs", "sm", "md"].includes(this.$vuetify.breakpoint.name)) {
+          this.drawer = false;
+        }
+      },
       openRemoveDialog(note) {
         this.selectedNote = note;
         this.removeDialog = true;
       },
-      closePasswordDialog() {
+      openPasswordDialog() {
+        this.closeMiniDrawer();
         this.passwordShown = false;
-        this.passwordDialog = false;
+        this.passwordDialog = true;
+      },
+      openWipeDialog() {
+        this.closeMiniDrawer();
+        this.wipeDialog = true;
       }
     }
   };

@@ -52,7 +52,7 @@ class Model {
       header.type = note.type;
     }
     if (note.crypto) {
-      header.crypto = crypto;
+      header.crypto = note.crypto;
     }
     header = yaml.safeDump(header, {schema: yaml.FAILSAFE_SCHEMA}).trim();
     return this.FILE_HEADER_START + header + this.FILE_HEADER_END + note.text;
@@ -196,8 +196,9 @@ class NotesGDrive {
 
   requestToken() {
     let redirectUri = document.location.origin + document.location.pathname;
-    document.location.href = "https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id=" +
-        this.clientId + "&scope=" + this.scope + "&redirect_uri=" + redirectUri;
+    let url = "https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id=" + this.clientId +
+        "&scope=" + this.scope + "&redirect_uri=" + redirectUri;
+    window.location.replace(url);
   }
 
   newStatus(file, active) {
