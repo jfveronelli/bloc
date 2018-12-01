@@ -21,22 +21,37 @@
           </v-list-tile>
           <span>Sync<br/>[ Ctrl I ]</span>
         </v-tooltip>
-        <v-list-tile @click="exportNotes()">
-          <v-list-tile-action>
-            <v-icon>save_alt</v-icon>
-          </v-list-tile-action>
-          <v-list-tile-content>
-            <v-list-tile-title>Export all listed</v-list-tile-title>
-          </v-list-tile-content>
-        </v-list-tile>
-        <v-list-tile @click="openWipeDialog()">
-          <v-list-tile-action>
-            <v-icon>layers_clear</v-icon>
-          </v-list-tile-action>
-          <v-list-tile-content>
-            <v-list-tile-title>Remove all</v-list-tile-title>
-          </v-list-tile-content>
-        </v-list-tile>
+        <v-list-group v-model="drawerAdmin">
+          <v-list-tile slot="activator">
+            <v-list-tile-content>
+              <v-list-tile-title>Administration</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-list-tile @click="exportNotes()">
+            <v-list-tile-action>
+              <v-icon>archive</v-icon>
+            </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>Export all listed</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-list-tile @click="openImportDialog()">
+            <v-list-tile-action>
+              <v-icon>unarchive</v-icon>
+            </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>Import notes</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-list-tile @click="openWipeDialog()">
+            <v-list-tile-action>
+              <v-icon>layers_clear</v-icon>
+            </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>Remove all</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+        </v-list-group>
         <v-list-group v-model="drawerTag">
           <v-list-tile slot="activator">
             <v-list-tile-content>
@@ -165,6 +180,22 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog persistent v-model="importDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Import notes</v-card-title>
+        <v-card-text class="text-xs-center subheading">
+          <div v-if="!importMessage">
+            <upload-btn title="Import" accept="application/zip" :fileChangedCallback="importNotes"></upload-btn>
+          </div>
+          <div v-else v-html="importMessage"></div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn flat :disabled="stage === 'importing'" @click="importDialog = false">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <v-dialog persistent v-model="wipeDialog" max-width="400">
       <v-card>
         <v-card-title class="headline">Remove all</v-card-title>
@@ -198,19 +229,27 @@
 </template>
 
 <script>
+  import UploadButton from "vuetify-upload-button";
   import saveAs from "file-saver";
   import notes from "@/services/notes";
   import utils from "@/services/utils";
 
   export default {
     name: "home",
+    components: {
+      "upload-btn": UploadButton
+    },
     data: () => ({
       drawer: null,
+      drawerAdmin: false,
       drawerTag: true,
       search: false,
+      stage: "loaded",
       passwordDialog: false,
       passwordShown: false,
       syncDialog: false,
+      importDialog: false,
+      importMessage: "",
       wipeDialog: false,
       removeDialog: false,
       selectedNote: null,
@@ -308,6 +347,18 @@
           });
         }
       },
+      importNotes(file) {
+        if (file && file.name.toLowerCase().endsWith(".zip") && file.size > 0) {
+          this.stage = "importing";
+          this.importMessage = "Importing...";
+          notes.local.import(file).then(res => {
+            this.importMessage = "Imported " + res.imported + " notes.<br/>Ignored " + res.ignored +
+                " existing notes.</div>";
+            this.stage = "loaded";
+            this.refreshTagsAndNotes();
+          });
+        }
+      },
       wipeAll() {
         notes.local.wipe();
         notes.remote.updateToken();
@@ -330,6 +381,11 @@
         this.closeMiniDrawer();
         this.passwordShown = false;
         this.passwordDialog = true;
+      },
+      openImportDialog() {
+        this.closeMiniDrawer();
+        this.importMessage = "";
+        this.importDialog = true;
       },
       openWipeDialog() {
         this.closeMiniDrawer();

@@ -149,6 +149,33 @@ class NotesDB {
     return zip.generateAsync(options);
   }
 
+  async import(zipFile) {
+    let imported = 0;
+    let ignored = 0;
+    let zip = new JSZip();
+    await zip.loadAsync(zipFile);
+    let noteName = /^[a-f0-9]{32}\.md$/i;
+    for (let name in zip.files) {
+      if (noteName.test(name)) {
+        let uuid = name.slice(0, 32).toLowerCase();
+        let date = zip.files[name].date;
+        date = new Date(date.getTime() + date.getTimezoneOffset() * 60000); // fixes bug in JSZip: date is read in UTC instead of local time
+        let content = await zip.file(name).async("string");
+        try {
+          await this.add(model.str2note(content, uuid, date));
+          imported++;
+        } catch (error) {
+          if (error.name === "ConstraintError") {
+            ignored++;
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
+    return {imported, ignored};
+  }
+
   async state() {
     let map = new Map();
     await this.db.removed.each(status => map.set(status.uuid, status));
@@ -289,15 +316,15 @@ class NotesSynchronizer {
         }
       } else {
         let deltaMillis = statusX.date.getTime() - statusY.date.getTime();
-        if (deltaMillis >= 1000) {
+        if (deltaMillis >= 2000) {
           if (statusX.active) {
-            console.log("Updating note " + uuid);
+            console.log("Updating note " + uuid + "  millis " + deltaMillis);
             await notesY.update(await notesX.get(uuid));
           } else {
             console.log("Removing note " + uuid);
             await notesY.remove(uuid, statusX.date);
           }
-        } else if (Math.abs(deltaMillis) >= 0 && Math.abs(deltaMillis) < 1000 && statusX.active && !statusY.active) {
+        } else if (Math.abs(deltaMillis) >= 0 && Math.abs(deltaMillis) < 2000 && statusX.active && !statusY.active) {
           console.log("Updating (conflicted) note " + uuid);
           await notesY.update(await notesX.get(uuid));
         }
