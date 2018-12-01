@@ -43,7 +43,27 @@
               <v-list-tile-title>Tags</v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
-          <v-list-tile v-for="tag in tags" :key="'tag_filter_' + tag" @click="toggleTagFilter(tag)">
+          <v-list-tile @click="toggleTagFilter()">
+            <v-list-tile-action>
+              <v-icon>label_important</v-icon>
+            </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>All</v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-list-tile>
+            <v-list-tile-action>
+              <v-icon>search</v-icon>
+            </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>
+                <v-text-field flat solo clearable hide-details label="Filter"
+                    v-model="$root.$data.tagFilter" v-on:input="tagFilterChanged()"/>
+              </v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
+          <v-divider></v-divider>
+          <v-list-tile v-for="tag in filteredTags" :key="'tag_filter_' + tag" @click="toggleTagFilter(tag)">
             <v-list-tile-action>
               <v-icon v-if="$root.$data.selectedTags.includes(tag)" color="yellow">label</v-icon>
               <v-icon v-else>label</v-icon>
@@ -195,6 +215,7 @@
       removeDialog: false,
       selectedNote: null,
       tags: [],
+      filteredTags: [],
       notes: []
     }),
     created() {
@@ -207,12 +228,27 @@
       }
     },
     methods: {
-      toggleTagFilter(tag) {
-        let selectedTags = this.$root.$data.selectedTags;
-        if (selectedTags.includes(tag)) {
-          selectedTags.splice(selectedTags.indexOf(tag), 1);
+      tagFilterChanged() {
+        let tagFilter = this.$root.$data.tagFilter;
+        utils.settings.updateTagFilter(tagFilter);
+        if (tagFilter) {
+          let isPhrase = utils.isPhrase(tagFilter);
+          this.filteredTags = this.tags.filter(tag => isPhrase.in(tag));
         } else {
-          selectedTags.push(tag);
+          this.filteredTags = this.tags;
+        }
+      },
+      toggleTagFilter(tag) {
+        let selectedTags = [];
+        if (tag) {
+          selectedTags = this.$root.$data.selectedTags;
+          if (selectedTags.includes(tag)) {
+            selectedTags.splice(selectedTags.indexOf(tag), 1);
+          } else {
+            selectedTags.push(tag);
+          }
+        } else {
+          this.$root.$data.selectedTags = selectedTags;
         }
         utils.settings.updateSelectedTags(selectedTags);
         this.refreshNotes();
@@ -223,10 +259,17 @@
       },
       refreshTagsAndNotes() {
         notes.local.tags().then(tags => {
-          let selectedTags = this.$root.$data.selectedTags.filter(selected => tags.includes(selected));
+          this.tags = tags;
+          let filteredTags = tags;
+          let tagFilter = this.$root.$data.tagFilter;
+          if (tagFilter) {
+            let isPhrase = utils.isPhrase(tagFilter);
+            filteredTags = tags.filter(tag => isPhrase.in(tag));
+          }
+          this.filteredTags = filteredTags;
+          let selectedTags = this.$root.$data.selectedTags.filter(tag => tags.includes(tag));
           this.$root.$data.selectedTags = selectedTags;
           utils.settings.updateSelectedTags(selectedTags);
-          this.tags = tags;
           this.refreshNotes();
         });
       },

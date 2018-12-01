@@ -15,6 +15,21 @@
 <style lang="stylus">
   #app
 
+    .v-navigation-drawer
+
+      .v-text-field
+
+        .v-input__control
+          min-height 24px
+
+          .v-input__slot
+            padding 0
+
+            label
+            input
+              padding 0
+              font-size 13px
+
     .v-chip.theme--light
       background-color #eee
 

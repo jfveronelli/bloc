@@ -44,6 +44,7 @@ new Vue({
   router: new Router({routes}),
   data: {
     isMobile: utils.isMobile,
+    tagFilter: utils.settings.tagFilter(),
     selectedTags: utils.settings.selectedTags(),
     searchText: utils.settings.searchText(),
     password: ""

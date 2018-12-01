@@ -31,6 +31,14 @@ class IsPhrase {
 
 
 class Settings {
+  tagFilter() {
+    return localStorage.tagFilter || "";
+  }
+
+  updateTagFilter(text) {
+    localStorage.tagFilter = text || "";
+  }
+
   selectedTags() {
     let tags = localStorage.selectedTags;
     return tags? tags.split("\n"): [];
@@ -53,6 +61,7 @@ class Settings {
   }
 
   wipe() {
+    localStorage.removeItem("tagFilter");
     localStorage.removeItem("selectedTags");
     localStorage.removeItem("searchText");
   }
