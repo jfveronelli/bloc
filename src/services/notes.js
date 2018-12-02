@@ -132,6 +132,19 @@ class NotesDB {
     await this.db.removed.put(model.status(uuid, date || new Date(), false));
   }
 
+  async updateTag(tag, newTags) {
+    let date = new Date();
+    await this.db.notes.where("tags").equals(tag).modify(note => {
+      note.date = date;
+      let pos = note.tags.indexOf(tag);
+      if (newTags) {
+        note.tags.splice(pos, 1, ...newTags);
+      } else {
+        note.tags.splice(pos, 1);
+      }
+    });
+  }
+
   async export(uuids) {
     let zip = new JSZip();
     for (let uuid of uuids) {

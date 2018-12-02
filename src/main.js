@@ -37,6 +37,11 @@ const routes = [
     path: "/*access_token=*",
     name: "google_auth",
     component: () => import("@/views/GoogleAuth.vue")
+  },
+  {
+    path: "/tags",
+    name: "tags",
+    component: () => import("@/views/Tags.vue")
   }
 ];
 
