@@ -3,7 +3,7 @@
     <v-toolbar app clipped-left>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
-      <v-tooltip bottom :disabled="$root.$data.isMobile">
+      <v-tooltip bottom :disabled="$root.isMobile">
         <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="$router.push({name: 'home'})" @click.stop="$router.push({name: 'home'})">
           <v-icon>keyboard_backspace</v-icon>
         </v-btn>

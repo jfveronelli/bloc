@@ -10,7 +10,7 @@
             <v-list-tile-title>Password</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
-        <v-tooltip right :disabled="$root.$data.isMobile">
+        <v-tooltip right :disabled="$root.isMobile">
           <v-list-tile slot="activator" v-shortkey="['ctrl', 'i']" @shortkey="syncNotes()" @click="syncNotes()">
             <v-list-tile-action>
               <v-icon>sync</v-icon>
@@ -41,7 +41,7 @@
             </v-list-tile-action>
             <v-list-tile-content>
               <v-list-tile-title>
-                <span v-if="$root.$data.metrics.on">Disable profiling</span>
+                <span v-if="$root.metrics.on">Disable profiling</span>
                 <span v-else>Enable profiling</span>
               </v-list-tile-title>
             </v-list-tile-content>
@@ -92,14 +92,14 @@
             <v-list-tile-content>
               <v-list-tile-title>
                 <v-text-field flat solo clearable hide-details label="Filter"
-                    v-model="$root.$data.tagFilter" v-on:input="tagFilterChanged()"/>
+                    v-model="$root.tagFilter" v-on:input="tagFilterChanged()"/>
               </v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
           <v-divider></v-divider>
           <v-list-tile v-for="tag in filteredTags" :key="'tag_filter_' + tag" @click="toggleTagFilter(tag)">
             <v-list-tile-action>
-              <v-icon v-if="$root.$data.selectedTags.includes(tag)" color="yellow">label</v-icon>
+              <v-icon v-if="$root.selectedTags.includes(tag)" color="yellow">label</v-icon>
               <v-icon v-else>label</v-icon>
             </v-list-tile-action>
             <v-list-tile-content>
@@ -116,7 +116,7 @@
       <v-spacer/>
       <v-slide-x-transition>
         <v-text-field flat solo clearable hide-details prepend-inner-icon="search" label="Search" v-if="search"
-            v-model="$root.$data.searchText" v-on:input="searchTextChanged()"/>
+            v-model="$root.searchText" v-on:input="refreshNotes()"/>
       </v-slide-x-transition>
       <v-btn flat icon v-if="!search" @click.stop="search = !search">
         <v-icon>search</v-icon>
@@ -129,9 +129,9 @@
           <v-card-text>
             <div class="text-xs-right caption">
               <div>{{notes.length}} notes</div>
-              <div v-if="$root.$data.metrics.on">
-                Tags: {{$root.$data.metrics.tags}} millis<br/>
-                Notes: {{$root.$data.metrics.notes}} millis
+              <div v-if="$root.metrics.on">
+                Tags: {{$root.metrics.tags}} millis<br/>
+                Notes: {{$root.metrics.notes}} millis
               </div>
             </div>
             <v-list>
@@ -164,7 +164,7 @@
       </v-flex>
     </v-layout>
 
-    <v-tooltip top :disabled="$root.$data.isMobile">
+    <v-tooltip top :disabled="$root.isMobile">
       <v-btn fab fixed bottom right dark color="pink" slot="activator" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
         <v-icon>add</v-icon>
       </v-btn>
@@ -177,7 +177,7 @@
         <v-card-text>
           <div>
             <v-text-field required label="Password" :type="passwordShown? 'text': 'password'"
-                :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.$data.password"
+                :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.password"
                 @click:append="passwordShown = !passwordShown"></v-text-field>
           </div>
           <div class="caption">
@@ -281,7 +281,7 @@
       notes: []
     }),
     created() {
-      this.search = !!this.$root.$data.searchText;
+      this.search = !!this.$root.searchText;
       if (this.$route.query.sync) {
         this.$router.replace({name: "home"});
         this.syncNotes();
@@ -291,13 +291,12 @@
     },
     methods: {
       toggleMetrics() {
-        let debug = !this.$root.$data.metrics.on;
-        this.$root.$data.metrics.on = debug;
+        let debug = !this.$root.metrics.on;
+        this.$root.metrics.on = debug;
         utils.settings.updateDebug(debug);
       },
       tagFilterChanged() {
-        let tagFilter = this.$root.$data.tagFilter;
-        utils.settings.updateTagFilter(tagFilter);
+        let tagFilter = this.$root.tagFilter;
         if (tagFilter) {
           let isPhrase = utils.isPhrase(tagFilter);
           this.filteredTags = this.tags.filter(tag => isPhrase.in(tag));
@@ -308,20 +307,15 @@
       toggleTagFilter(tag) {
         let selectedTags = [];
         if (tag) {
-          selectedTags = this.$root.$data.selectedTags;
+          selectedTags = this.$root.selectedTags;
           if (selectedTags.includes(tag)) {
             selectedTags.splice(selectedTags.indexOf(tag), 1);
           } else {
             selectedTags.push(tag);
           }
         } else {
-          this.$root.$data.selectedTags = selectedTags;
+          this.$root.selectedTags = selectedTags;
         }
-        utils.settings.updateSelectedTags(selectedTags);
-        this.refreshNotes();
-      },
-      searchTextChanged() {
-        utils.settings.updateSearchText(this.$root.$data.searchText);
         this.refreshNotes();
       },
       refreshTagsAndNotes() {
@@ -329,25 +323,23 @@
         notes.local.tags().then(tags => {
           this.tags = tags;
           let filteredTags = tags;
-          let tagFilter = this.$root.$data.tagFilter;
+          let tagFilter = this.$root.tagFilter;
           if (tagFilter) {
             let isPhrase = utils.isPhrase(tagFilter);
             filteredTags = tags.filter(tag => isPhrase.in(tag));
           }
           this.filteredTags = filteredTags;
-          let selectedTags = this.$root.$data.selectedTags.filter(tag => tags.includes(tag));
-          this.$root.$data.selectedTags = selectedTags;
-          utils.settings.updateSelectedTags(selectedTags);
-          this.$root.$data.metrics.tags = new Date() - startTime;
+          this.$root.selectedTags = this.$root.selectedTags.filter(tag => tags.includes(tag));
+          this.$root.metrics.tags = new Date() - startTime;
           this.refreshNotes();
         });
       },
       refreshNotes() {
         let startTime = new Date();
-        let params = {tags: this.$root.$data.selectedTags.slice(), text: this.$root.$data.searchText};
+        let params = {tags: this.$root.selectedTags.slice(), text: this.$root.searchText};
         notes.local.list(params).then(list => {
           this.notes = list;
-          this.$root.$data.metrics.notes = new Date() - startTime;
+          this.$root.metrics.notes = new Date() - startTime;
         });
       },
       createNote() {
@@ -397,10 +389,10 @@
         notes.local.wipe();
         notes.remote.updateToken();
         utils.settings.wipe();
-        this.$root.$data.metrics.on = false;
-        this.$root.$data.tagFilter = "";
-        this.$root.$data.searchText = "";
-        this.$root.$data.password = "";
+        this.$root.metrics.on = false;
+        this.$root.tagFilter = "";
+        this.$root.searchText = "";
+        this.$root.password = "";
         this.refreshTagsAndNotes();
         this.wipeDialog = false;
       },

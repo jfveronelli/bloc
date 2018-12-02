@@ -59,5 +59,16 @@ new Vue({
     searchText: utils.settings.searchText(),
     password: ""
   },
+  watch: {
+    tagFilter(value) {
+      utils.settings.updateTagFilter(value);
+    },
+    selectedTags(value) {
+      utils.settings.updateSelectedTags(value);
+    },
+    searchText(value) {
+      utils.settings.updateSearchText(value);
+    }
+  },
   render: html => html(App)
 }).$mount("#app");

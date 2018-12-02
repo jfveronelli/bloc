@@ -3,7 +3,7 @@
     <v-toolbar app clipped-left>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
-      <v-tooltip bottom :disabled="$root.$data.isMobile">
+      <v-tooltip bottom :disabled="$root.isMobile">
         <v-btn flat icon slot="activator" :disabled="stage !== 'loaded'" @click.stop="noteEncrypted = !noteEncrypted">
           <v-icon v-if="noteEncrypted">lock_open</v-icon>
           <v-icon v-else>lock</v-icon>
@@ -11,13 +11,13 @@
         <span v-if="noteEncrypted">Unlock</span>
         <span v-else>Lock</span>
       </v-tooltip>
-      <v-tooltip bottom :disabled="$root.$data.isMobile">
+      <v-tooltip bottom :disabled="$root.isMobile">
         <v-btn flat icon slot="activator" :disabled="stage !== 'loaded'" v-shortkey="['ctrl', 's']" @shortkey="saveNote()" @click.stop="saveNote()">
           <v-icon>save</v-icon>
         </v-btn>
         <span>Save<br/>[ Ctrl S ]</span>
       </v-tooltip>
-      <v-tooltip bottom :disabled="$root.$data.isMobile">
+      <v-tooltip bottom :disabled="$root.isMobile">
         <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancelDialog = true" @click.stop="cancelDialog = true">
           <v-icon>keyboard_backspace</v-icon>
         </v-btn>
@@ -76,7 +76,7 @@
         <v-card-title class="headline">Confirm password</v-card-title>
         <v-card-text>
           <v-text-field required label="Password" :type="passwordShown? 'text': 'password'"
-              :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.$data.password"
+              :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.password"
               @click:append="passwordShown = !passwordShown"></v-text-field>
         </v-card-text>
         <v-card-actions>
@@ -116,8 +116,8 @@
         let encrypted = !!note.crypto;
         this.noteWasEncrypted = encrypted;
         this.noteEncrypted = encrypted;
-        if (note.crypto && this.$root.$data.password) {
-          return notes.crypto.decrypt(note, this.$root.$data.password);
+        if (note.crypto && this.$root.password) {
+          return notes.crypto.decrypt(note, this.$root.password);
         }
         return note;
       }).then(note => {
@@ -135,7 +135,7 @@
       saveNote() {
         this.note.date = new Date();
         if (this.noteEncrypted) {
-          if (!this.noteWasEncrypted || !this.$root.$data.password) {
+          if (!this.noteWasEncrypted || !this.$root.password) {
             this.passwordDialog = true;
           } else {
             this.__saveNoteStep2();
@@ -146,18 +146,15 @@
       },
       __saveNoteStep2() {
         this.passwordDialog = false;
-        if (this.$root.$data.password) {
+        if (this.$root.password) {
           this.stage = "saving";
-          notes.crypto.encrypt(this.note, this.$root.$data.password).then(this.__saveNoteStep3);
+          notes.crypto.encrypt(this.note, this.$root.password).then(this.__saveNoteStep3);
         }
       },
       __saveNoteStep3() {
         this.stage = "saving";
-        if (this.uuid) {
-          notes.local.update(this.note).then(() => this.readNote(this.note.uuid));
-        } else {
-          notes.local.add(this.note).then(() => this.readNote(this.note.uuid));
-        }
+        let promise = this.uuid? notes.local.update(this.note): notes.local.add(this.note);
+        promise.then(() => this.readNote(this.note.uuid));
       },
       listNotes() {
         this.$router.push({name: "home"});

@@ -89,6 +89,7 @@ class NotesDB {
       notes: "uuid, *tags, type",
       removed: "uuid"
     });
+    this.db.open();
   }
 
   async list(params) { //tags, type, text

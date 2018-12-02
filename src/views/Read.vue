@@ -3,19 +3,19 @@
     <v-toolbar app clipped-left>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
-      <v-tooltip bottom :disabled="$root.$data.isMobile">
+      <v-tooltip bottom :disabled="$root.isMobile">
         <v-btn flat icon slot="activator" :disabled="stage !== 'loaded'" v-shortkey="['ctrl', 'e']" @shortkey="editNote()" @click.stop="editNote()">
           <v-icon>edit</v-icon>
         </v-btn>
         <span>Edit<br/>[ Ctrl E ]</span>
       </v-tooltip>
-      <v-tooltip bottom :disabled="$root.$data.isMobile">
+      <v-tooltip bottom :disabled="$root.isMobile">
         <v-btn flat icon slot="activator" v-shortkey="['ctrl', 'd']" @shortkey="removeDialog = true" @click.stop="removeDialog = true">
           <v-icon>delete</v-icon>
         </v-btn>
         <span>Remove<br/>[ Ctrl D ]</span>
       </v-tooltip>
-      <v-tooltip bottom :disabled="$root.$data.isMobile">
+      <v-tooltip bottom :disabled="$root.isMobile">
         <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancel()" @click.stop="cancel()">
           <v-icon>keyboard_backspace</v-icon>
         </v-btn>
@@ -85,8 +85,8 @@
       notes.local.get(this.uuid).then(note => {
         this.note = note;
         this.noteEncrypted = !!note.crypto;
-        if (note.crypto && this.$root.$data.password) {
-          return notes.crypto.decrypt(note, this.$root.$data.password);
+        if (note.crypto && this.$root.password) {
+          return notes.crypto.decrypt(note, this.$root.password);
         }
         return note;
       }).then(note => {
@@ -105,7 +105,7 @@
       removeNote() {
         notes.local.remove(this.uuid).then(res => {
           this.removeDialog = false;
-          this.cancel()
+          this.cancel();
         });
       },
       cancel() {
