@@ -35,6 +35,17 @@
               <v-list-tile-title>Tags</v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
+          <v-list-tile @click="toggleMetrics()">
+            <v-list-tile-action>
+              <v-icon>timer</v-icon>
+            </v-list-tile-action>
+            <v-list-tile-content>
+              <v-list-tile-title>
+                <span v-if="$root.$data.metrics.on">Disable profiling</span>
+                <span v-else>Enable profiling</span>
+              </v-list-tile-title>
+            </v-list-tile-content>
+          </v-list-tile>
           <v-list-tile @click="exportNotes()">
             <v-list-tile-action>
               <v-icon>archive</v-icon>
@@ -117,7 +128,11 @@
         <v-card v-if="notes.length > 0">
           <v-card-text>
             <div class="text-xs-right caption">
-              {{notes.length}} notes
+              <div>{{notes.length}} notes</div>
+              <div v-if="$root.$data.metrics.on">
+                Tags: {{$root.$data.metrics.tags}} millis<br/>
+                Notes: {{$root.$data.metrics.notes}} millis
+              </div>
             </div>
             <v-list>
               <template v-for="(note, i) in notes">
@@ -275,6 +290,11 @@
       }
     },
     methods: {
+      toggleMetrics() {
+        let debug = !this.$root.$data.metrics.on;
+        this.$root.$data.metrics.on = debug;
+        utils.settings.updateDebug(debug);
+      },
       tagFilterChanged() {
         let tagFilter = this.$root.$data.tagFilter;
         utils.settings.updateTagFilter(tagFilter);
@@ -305,6 +325,7 @@
         this.refreshNotes();
       },
       refreshTagsAndNotes() {
+        let startTime = new Date();
         notes.local.tags().then(tags => {
           this.tags = tags;
           let filteredTags = tags;
@@ -317,12 +338,17 @@
           let selectedTags = this.$root.$data.selectedTags.filter(tag => tags.includes(tag));
           this.$root.$data.selectedTags = selectedTags;
           utils.settings.updateSelectedTags(selectedTags);
+          this.$root.$data.metrics.tags = new Date() - startTime;
           this.refreshNotes();
         });
       },
       refreshNotes() {
+        let startTime = new Date();
         let params = {tags: this.$root.$data.selectedTags.slice(), text: this.$root.$data.searchText};
-        notes.local.list(params).then(list => this.notes = list);
+        notes.local.list(params).then(list => {
+          this.notes = list;
+          this.$root.$data.metrics.notes = new Date() - startTime;
+        });
       },
       createNote() {
         this.$router.push({name: "new"});
@@ -371,6 +397,7 @@
         notes.local.wipe();
         notes.remote.updateToken();
         utils.settings.wipe();
+        this.$root.$data.metrics.on = false;
         this.$root.$data.tagFilter = "";
         this.$root.$data.searchText = "";
         this.$root.$data.password = "";

@@ -48,6 +48,11 @@ const routes = [
 new Vue({
   router: new Router({routes}),
   data: {
+    metrics: {
+      on: utils.settings.debug(),
+      tags: 0,
+      notes: 0
+    },
     isMobile: utils.isMobile,
     tagFilter: utils.settings.tagFilter(),
     selectedTags: utils.settings.selectedTags(),

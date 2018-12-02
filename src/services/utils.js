@@ -31,6 +31,17 @@ class IsPhrase {
 
 
 class Settings {
+  debug() {
+    return !!localStorage.debug;
+  }
+
+  updateDebug(flag) {
+    if (flag) {
+      localStorage.debug = "true";
+    } else {
+      localStorage.removeItem("debug");
+    }
+  }
   tagFilter() {
     return localStorage.tagFilter || "";
   }
@@ -61,6 +72,7 @@ class Settings {
   }
 
   wipe() {
+    localStorage.removeItem("debug");
     localStorage.removeItem("tagFilter");
     localStorage.removeItem("selectedTags");
     localStorage.removeItem("searchText");
