@@ -17,11 +17,11 @@
         </v-btn>
         <span>Save<br/>[ Ctrl S ]</span>
       </v-tooltip>
-      <v-tooltip bottom :disabled="$root.isMobile">
-        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancelDialog = true" @click.stop="cancelDialog = true">
+      <v-tooltip bottom v-if="!$root.isMobile">
+        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="openCancelDialog()" @click.stop="openCancelDialog()">
           <v-icon>keyboard_backspace</v-icon>
         </v-btn>
-        <span>Cancel<br/>[ Esc ]</span>
+        <span>Go back<br/>[ Esc ]</span>
       </v-tooltip>
     </v-toolbar>
 
@@ -30,7 +30,7 @@
         <v-card>
           <v-card-text>
             <div v-if="stage === 'loaded'">
-              <v-text-field label="Title" v-model="note.title"/>
+              <v-text-field label="Title" ref="titleField" v-model="note.title"/>
               <v-combobox multiple chips clearable label="Tags" v-model="note.tags" :items="tags">
                 <template slot="selection" slot-scope="data">
                   <v-chip small close class="caption" :selected="data.selected" @input="removeTag(data.item)">
@@ -106,9 +106,15 @@
     }),
     created() {
       this.uuid = this.$route.params.uuid;
+
+      // Browser hack to handle back button
+      window.history.pushState({}, "");
+      window.addEventListener("popstate", this.onBrowserBackButton);
+
       notes.local.tags().then(list => this.tags = list);
       if (!this.uuid) {
         this.stage = "loaded";
+        this.$nextTick(() => this.$refs.titleField.focus());
         return;
       }
       notes.local.get(this.uuid).then(note => {
@@ -128,10 +134,10 @@
         }
       });
     },
+    destroyed() {
+      window.removeEventListener("popstate", this.onBrowserBackButton);
+    },
     methods: {
-      readNote(uuid) {
-        this.$router.push({name: "read", params: {uuid}});
-      },
       saveNote() {
         this.note.date = new Date();
         if (this.noteEncrypted) {
@@ -154,7 +160,7 @@
       __saveNoteStep3() {
         this.stage = "saving";
         let promise = this.uuid? notes.local.update(this.note): notes.local.add(this.note);
-        promise.then(() => this.readNote(this.note.uuid));
+        promise.then(() => this.cancel());
       },
       listNotes() {
         this.$router.push({name: "home"});
@@ -163,11 +169,14 @@
         this.note.tags.splice(this.note.tags.indexOf(tag), 1);
       },
       cancel() {
-        if (this.uuid) {
-          this.readNote(this.uuid);
-        } else {
-          this.listNotes();
-        }
+        this.$router.go(-2);
+      },
+      openCancelDialog() {
+        this.cancelDialog = true;
+      },
+      onBrowserBackButton() {
+        this.$router.go(1);
+        this.openCancelDialog();
       }
     }
   };

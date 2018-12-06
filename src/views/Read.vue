@@ -15,11 +15,11 @@
         </v-btn>
         <span>Remove<br/>[ Ctrl D ]</span>
       </v-tooltip>
-      <v-tooltip bottom :disabled="$root.isMobile">
+      <v-tooltip bottom v-if="!$root.isMobile">
         <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancel()" @click.stop="cancel()">
           <v-icon>keyboard_backspace</v-icon>
         </v-btn>
-        <span>Exit<br/>[ Esc ]</span>
+        <span>Go back<br/>[ Esc ]</span>
       </v-tooltip>
     </v-toolbar>
 
@@ -51,6 +51,13 @@
         </v-card>
       </v-flex>
     </v-layout>
+
+    <v-tooltip top :disabled="$root.isMobile">
+      <v-btn fab fixed bottom right dark color="pink" slot="activator" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
+        <v-icon>add</v-icon>
+      </v-btn>
+      <span>Add<br/>[ Ctrl A ]</span>
+    </v-tooltip>
 
     <v-dialog v-model="removeDialog" max-width="400">
       <v-card>
@@ -99,6 +106,9 @@
       });
     },
     methods: {
+      createNote() {
+        this.$router.push({name: "new"});
+      },
       editNote() {
         this.$router.push({name: "edit", params: {uuid: this.uuid}});
       },
@@ -112,7 +122,7 @@
         if (this.removeDialog) {
           this.removeDialog = false;
         } else {
-          this.$router.push({name: "home"});
+          this.$router.go(-1);
         }
       }
     }

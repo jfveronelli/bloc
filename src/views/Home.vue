@@ -115,10 +115,10 @@
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-slide-x-transition>
-        <v-text-field flat solo clearable hide-details prepend-inner-icon="search" label="Search" v-if="search"
-            v-model="$root.searchText" v-on:input="refreshNotes()"/>
+        <v-text-field flat solo clearable hide-details prepend-inner-icon="search" label="Search" ref="searchField"
+            v-if="search" v-model="$root.searchText" v-on:input="refreshNotes()"/>
       </v-slide-x-transition>
-      <v-btn flat icon v-if="!search" @click.stop="search = !search">
+      <v-btn flat icon v-if="!search" @click.stop="openSearchField()">
         <v-icon>search</v-icon>
       </v-btn>
     </v-toolbar>
@@ -176,7 +176,7 @@
         <v-card-title class="headline">Password</v-card-title>
         <v-card-text>
           <div>
-            <v-text-field required label="Password" :type="passwordShown? 'text': 'password'"
+            <v-text-field required label="Password" ref="passwordField" :type="passwordShown? 'text': 'password'"
                 :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.password"
                 @click:append="passwordShown = !passwordShown"></v-text-field>
           </div>
@@ -401,6 +401,10 @@
           this.drawer = false;
         }
       },
+      openSearchField() {
+        this.search = true;
+        this.$nextTick(() => this.$refs.searchField.focus());
+      },
       openRemoveDialog(note) {
         this.selectedNote = note;
         this.removeDialog = true;
@@ -409,6 +413,7 @@
         this.closeMiniDrawer();
         this.passwordShown = false;
         this.passwordDialog = true;
+        this.$nextTick(() => this.$refs.passwordField.focus());
       },
       openImportDialog() {
         this.closeMiniDrawer();

@@ -3,11 +3,11 @@
     <v-toolbar app clipped-left>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
-      <v-tooltip bottom :disabled="$root.isMobile">
-        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="$router.push({name: 'home'})" @click.stop="$router.push({name: 'home'})">
+      <v-tooltip bottom v-if="!$root.isMobile">
+        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="$router.go(-1)" @click.stop="$router.go(-1)">
           <v-icon>keyboard_backspace</v-icon>
         </v-btn>
-        <span>Exit<br/>[ Esc ]</span>
+        <span>Go back<br/>[ Esc ]</span>
       </v-tooltip>
     </v-toolbar>
 
@@ -16,7 +16,7 @@
         <v-card>
           <v-card-text>
             <div v-if="stage !== 'loading'">
-              <v-select label="Tag to replace" :items="tags" v-model="tag"/>
+              <v-select label="Tag to replace" ref="tagSelect" :items="tags" v-model="tag"/>
               <v-text-field label="New tag" hint="Fill to replace the selected tag, or leave blank to remove it" v-model="newTag"/>
               <v-text-field label="Another new tag" hint="You may add a 2nd new tag" v-model="newTag2"/>
               <div class="text-xs-center">
@@ -62,6 +62,7 @@
           this.newTag = "";
           this.newTag2 = "";
           this.stage = "loaded";
+          this.$nextTick(() => this.$refs.tagSelect.focus());
         });
       },
       updateTag() {
