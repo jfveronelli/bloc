@@ -66,6 +66,22 @@
   .bl-markdown
     overflow-wrap break-word
 
+    code
+      box-shadow none
+      -webkit-box-shadow none
+      padding 0 2px
+      font-weight normal
+      color #24292e
+
+      &:before
+      &:after
+        content ""
+
+    pre
+
+      code
+        padding 4px
+
     table
       border-spacing 0
       border-collapse collapse

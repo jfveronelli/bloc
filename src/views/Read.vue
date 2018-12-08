@@ -73,8 +73,8 @@
   import MainButton from "@/components/MainButton.vue";
   import NoteRemovalDialog from "@/components/NoteRemovalDialog.vue";
   import PasswordDialog from "@/components/PasswordDialog.vue";
-  import marked from "marked";
   import notes from "@/services/notes";
+  import markdown from "@/services/markdown";
 
   export default {
     name: "Read",
@@ -118,7 +118,7 @@
       },
       renderNote() {
         if (!this.note.crypto) {
-          this.noteText = marked(this.note.text);
+          this.noteText = markdown.render(this.note.text);
           this.stage = "loaded";
         } else {
           this.noteText = "";
