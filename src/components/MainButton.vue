@@ -1,5 +1,5 @@
 <template>
-  <v-tooltip bottom>
+  <v-tooltip bottom :disabled="$root.isMobile">
     <v-btn icon slot="activator" @click="$router.push({name: 'home'})">
       <v-icon>arrow_upward</v-icon>
     </v-btn>
@@ -9,6 +9,6 @@
 
 <script>
   export default {
-    name: "go_to_main"
+    name: "MainButton"
   };
 </script>

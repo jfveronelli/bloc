@@ -62,4 +62,23 @@
           .v-divider--inset:not(.v-divider--vertical)
             margin 0
             max-width: 100%
+
+  .bl-markdown
+    overflow-wrap break-word
+
+    table
+      border-spacing 0
+      border-collapse collapse
+
+      tbody
+
+        tr:nth-child(2n-1)
+          background-color #f6f8fa
+
+      th
+      td
+        border 1px solid #dfe2e5
+        padding 0px 6px
+
+
 </style>

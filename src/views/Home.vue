@@ -171,26 +171,7 @@
       <span>Add<br/>[ Ctrl A ]</span>
     </v-tooltip>
 
-    <v-dialog persistent v-model="passwordDialog" max-width="400">
-      <v-card>
-        <v-card-title class="headline">Password</v-card-title>
-        <v-card-text>
-          <div>
-            <v-text-field required label="Password" ref="passwordField" :type="passwordShown? 'text': 'password'"
-                :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.password"
-                @click:append="passwordShown = !passwordShown"></v-text-field>
-          </div>
-          <div class="caption">
-            <v-icon small>message</v-icon>
-            <span class="bl-space-left">For security reasons, any view refresh will clear the password</span>
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn flat @click="passwordDialog = false">Close</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <bl-password-dlg ref="passwordDialog"/>
 
     <v-dialog persistent v-model="syncDialog" max-width="400">
       <v-card>
@@ -208,7 +189,7 @@
         <v-card-title class="headline">Import notes</v-card-title>
         <v-card-text class="text-xs-center subheading">
           <div v-if="!importMessage">
-            <upload-btn title="Import" accept="application/zip" :fileChangedCallback="importNotes"></upload-btn>
+            <v-upload-btn title="Import" accept="application/zip" :fileChangedCallback="importNotes"></v-upload-btn>
           </div>
           <div v-else v-html="importMessage"></div>
         </v-card-text>
@@ -234,33 +215,24 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="removeDialog" max-width="400">
-      <v-card>
-        <v-card-title class="headline">Remove note</v-card-title>
-        <v-card-text class="subheading">
-          <div>Are you sure you want to remove this note?</div>
-          <div v-if="selectedNote" class="font-weight-medium">{{ selectedNote.title }}</div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn flat color="error" @click="removeNote()">Yes</v-btn>
-          <v-btn flat @click="removeDialog = false">No</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <bl-note-removal-dlg ref="removeDialog" :note="selectedNote" v-on:note-removal-dialog-confirmed="removeNote()"/>
   </v-container>
 </template>
 
 <script>
   import UploadButton from "vuetify-upload-button";
+  import PasswordDialog from "@/components/PasswordDialog.vue";
+  import NoteRemovalDialog from "@/components/NoteRemovalDialog.vue";
   import saveAs from "file-saver";
   import notes from "@/services/notes";
   import utils from "@/services/utils";
 
   export default {
-    name: "home",
+    name: "Home",
     components: {
-      "upload-btn": UploadButton
+      "v-upload-btn": UploadButton,
+      "bl-password-dlg": PasswordDialog,
+      "bl-note-removal-dlg": NoteRemovalDialog
     },
     data: () => ({
       drawer: null,
@@ -268,13 +240,10 @@
       drawerTag: true,
       search: false,
       stage: "loaded",
-      passwordDialog: false,
-      passwordShown: false,
       syncDialog: false,
       importDialog: false,
       importMessage: "",
       wipeDialog: false,
-      removeDialog: false,
       selectedNote: null,
       tags: [],
       filteredTags: [],
@@ -348,7 +317,6 @@
       removeNote() {
         notes.local.remove(this.selectedNote.uuid).then(this.refreshTagsAndNotes);
         this.selectedNote = null;
-        this.removeDialog = false;
       },
       exportNotes() {
         this.closeMiniDrawer();
@@ -407,13 +375,11 @@
       },
       openRemoveDialog(note) {
         this.selectedNote = note;
-        this.removeDialog = true;
+        this.$refs.removeDialog.open();
       },
       openPasswordDialog() {
         this.closeMiniDrawer();
-        this.passwordShown = false;
-        this.passwordDialog = true;
-        this.$nextTick(() => this.$refs.passwordField.focus());
+        this.$refs.passwordDialog.open();
       },
       openImportDialog() {
         this.closeMiniDrawer();

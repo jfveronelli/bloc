@@ -1,7 +1,7 @@
 <template>
   <v-container fluid>
     <v-toolbar app clipped-left>
-      <GoToMain/>
+      <bl-main-btn/>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-tooltip bottom :disabled="$root.isMobile">
@@ -11,7 +11,7 @@
         <span>Edit<br/>[ Ctrl E ]</span>
       </v-tooltip>
       <v-tooltip bottom :disabled="$root.isMobile">
-        <v-btn flat icon slot="activator" v-shortkey="['ctrl', 'd']" @shortkey="removeDialog = true" @click.stop="removeDialog = true">
+        <v-btn flat icon slot="activator" v-shortkey="['ctrl', 'd']" @shortkey="$refs.removeDialog.open()" @click.stop="$refs.removeDialog.open()">
           <v-icon>delete</v-icon>
         </v-btn>
         <span>Remove<br/>[ Ctrl D ]</span>
@@ -45,7 +45,7 @@
             <div v-else-if="stage === 'locked'" class="headline text-xs-center">
               <p>[ Content is encrypted: password is not set or is invalid ]</p>
               <p>
-                <v-btn color="primary" @click="openPasswordDialog()">Password</v-btn>
+                <v-btn color="primary" @click="$refs.passwordDialog.open()">Password</v-btn>
               </p>
             </div>
             <p v-else class="text-xs-center">
@@ -63,66 +63,40 @@
       <span>Add<br/>[ Ctrl A ]</span>
     </v-tooltip>
 
-    <v-dialog persistent v-model="passwordDialog" max-width="400">
-      <v-card>
-        <v-card-title class="headline">Password</v-card-title>
-        <v-card-text>
-          <div>
-            <v-text-field required label="Password" ref="passwordField" :type="passwordShown? 'text': 'password'"
-                :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.password"
-                @click:append="passwordShown = !passwordShown"></v-text-field>
-          </div>
-          <div class="caption">
-            <v-icon small>message</v-icon>
-            <span class="bl-space-left">For security reasons, any view refresh will clear the password</span>
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn flat @click="closePasswordDialog()">Close</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <bl-password-dlg ref="passwordDialog" v-on:password-dialog-closed="decryptAndRenderNote()"/>
 
-    <v-dialog v-model="removeDialog" max-width="400">
-      <v-card>
-        <v-card-title class="headline">Remove note</v-card-title>
-        <v-card-text class="subheading text-xs-center">Are you sure you want to remove this note?</v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn flat color="error" @click="removeNote()">Yes</v-btn>
-          <v-btn flat @click="removeDialog = false">No</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <bl-note-removal-dlg ref="removeDialog" v-on:note-removal-dialog-confirmed="removeNote()"/>
   </v-container>
 </template>
 
 <script>
-  import GoToMain from "@/components/GoToMain.vue";
+  import MainButton from "@/components/MainButton.vue";
+  import NoteRemovalDialog from "@/components/NoteRemovalDialog.vue";
+  import PasswordDialog from "@/components/PasswordDialog.vue";
   import marked from "marked";
   import notes from "@/services/notes";
 
   export default {
-    name: "read",
-    components: {GoToMain},
+    name: "Read",
+    components: {
+      "bl-main-btn": MainButton,
+      "bl-note-removal-dlg": NoteRemovalDialog,
+      "bl-password-dlg": PasswordDialog
+    },
     data: () => ({
       uuid: null,
       note: notes.model.note(),
       noteEncrypted: false,
       noteText: "",
-      stage: "loading",
-      passwordDialog: false,
-      passwordShown: false,
-      removeDialog: false
+      stage: "loading"
     }),
     created() {
       this.uuid = this.$route.params.uuid;
       notes.local.get(this.uuid).then(note => {
         this.note = note;
         this.noteEncrypted = !!note.crypto;
-        return this.decryptNote();
-      }).then(this.renderNote);
+        this.decryptAndRenderNote();
+      });
     },
     methods: {
       createNote() {
@@ -132,15 +106,14 @@
         this.$router.push({name: "edit", params: {uuid: this.uuid}});
       },
       removeNote() {
-        notes.local.remove(this.uuid).then(res => {
-          this.removeDialog = false;
-          this.cancel();
-        });
+        notes.local.remove(this.uuid).then(this.cancel);
       },
-      async decryptNote() {
+      decryptAndRenderNote() {
         this.stage = "loading";
         if (this.note.crypto && this.$root.password) {
-          return notes.crypto.decrypt(this.note, this.$root.password);
+          notes.crypto.decrypt(this.note, this.$root.password).then(this.renderNote);
+        } else {
+          this.renderNote();
         }
       },
       renderNote() {
@@ -153,20 +126,7 @@
         }
       },
       cancel() {
-        if (this.removeDialog) {
-          this.removeDialog = false;
-        } else {
-          this.$router.go(-1);
-        }
-      },
-      openPasswordDialog() {
-        this.passwordShown = false;
-        this.passwordDialog = true;
-        this.$nextTick(() => this.$refs.passwordField.focus());
-      },
-      closePasswordDialog() {
-        this.passwordDialog = false;
-        this.decryptNote().then(this.renderNote);
+        this.$router.go(-1);
       }
     }
   };
@@ -175,7 +135,4 @@
 <style scoped lang="stylus">
   .bl-subtitle
     margin-top 4px
-
-  .bl-markdown
-    overflow-wrap break-word
 </style>

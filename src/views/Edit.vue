@@ -1,7 +1,7 @@
 <template>
   <v-container fluid>
     <v-toolbar app clipped-left>
-      <GoToMain/>
+      <bl-main-btn/>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-tooltip bottom :disabled="$root.isMobile">
@@ -72,30 +72,22 @@
       </v-card>
     </v-dialog>
 
-    <v-dialog persistent v-model="passwordDialog" max-width="400">
-      <v-card>
-        <v-card-title class="headline">Confirm password</v-card-title>
-        <v-card-text>
-          <v-text-field required label="Password" :type="passwordShown? 'text': 'password'"
-              :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.password"
-              @click:append="passwordShown = !passwordShown"></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn flat @click="__saveNoteStep2()">Ok</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <bl-password-dlg title="Confirm password" button="Ok" focused="false" ref="passwordDialog"
+        v-on:password-dialog-closed="__saveNoteStep2()"/>
   </v-container>
 </template>
 
 <script>
-  import GoToMain from "@/components/GoToMain.vue";
+  import MainButton from "@/components/MainButton.vue";
+  import PasswordDialog from "@/components/PasswordDialog.vue";
   import notes from "@/services/notes";
 
   export default {
-    name: "edit",
-    components: {GoToMain},
+    name: "Edit",
+    components: {
+      "bl-main-btn": MainButton,
+      "bl-password-dlg": PasswordDialog
+    },
     data: () => ({
       uuid: null,
       note: notes.model.note(),
@@ -103,9 +95,7 @@
       noteEncrypted: false,
       tags: [],
       stage: "loading",
-      cancelDialog: false,
-      passwordDialog: false,
-      passwordShown: false
+      cancelDialog: false
     }),
     created() {
       this.uuid = this.$route.params.uuid;
@@ -145,7 +135,7 @@
         this.note.date = new Date();
         if (this.noteEncrypted) {
           if (!this.noteWasEncrypted || !this.$root.password) {
-            this.passwordDialog = true;
+            this.$refs.passwordDialog.open();
           } else {
             this.__saveNoteStep2();
           }
@@ -154,7 +144,6 @@
         }
       },
       __saveNoteStep2() {
-        this.passwordDialog = false;
         if (this.$root.password) {
           this.stage = "saving";
           notes.crypto.encrypt(this.note, this.$root.password).then(this.__saveNoteStep3);

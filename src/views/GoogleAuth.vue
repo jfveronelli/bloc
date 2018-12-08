@@ -4,7 +4,7 @@
   import notes from "@/services/notes";
 
   export default {
-    name: "google_auth",
+    name: "GoogleAuth",
     created() {
       notes.remote.updateToken(document.location.hash);
       this.$router.replace({name: "home", query: {sync: "true"}});

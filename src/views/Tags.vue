@@ -1,7 +1,7 @@
 <template>
   <v-container fluid>
     <v-toolbar app clipped-left>
-      <GoToMain/>
+      <bl-main-btn/>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-tooltip bottom v-if="!$root.isMobile">
@@ -41,12 +41,14 @@
 </template>
 
 <script>
-  import GoToMain from "@/components/GoToMain.vue";
+  import MainButton from "@/components/MainButton.vue";
   import notes from "@/services/notes";
 
   export default {
-    name: "tags",
-    components: {GoToMain},
+    name: "Tags",
+    components: {
+      "bl-main-btn": MainButton
+    },
     data: () => ({
       tags: [],
       tag: null,
