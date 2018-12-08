@@ -1,6 +1,7 @@
 <template>
   <v-container fluid>
     <v-toolbar app clipped-left>
+      <GoToMain/>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-tooltip bottom :disabled="$root.isMobile">
@@ -89,10 +90,12 @@
 </template>
 
 <script>
+  import GoToMain from "@/components/GoToMain.vue";
   import notes from "@/services/notes";
 
   export default {
     name: "edit",
+    components: {GoToMain},
     data: () => ({
       uuid: null,
       note: notes.model.note(),
@@ -159,11 +162,11 @@
       },
       __saveNoteStep3() {
         this.stage = "saving";
-        let promise = this.uuid? notes.local.update(this.note): notes.local.add(this.note);
-        promise.then(() => this.cancel());
-      },
-      listNotes() {
-        this.$router.push({name: "home"});
+        if (this.uuid) {
+          notes.local.update(this.note).then(this.cancel);
+        } else {
+          notes.local.add(this.note).then(() => this.$router.replace({name: "read", params: {uuid: this.note.uuid}}));
+        }
       },
       removeTag(tag) {
         this.note.tags.splice(this.note.tags.indexOf(tag), 1);
@@ -172,7 +175,11 @@
         this.$router.go(-2);
       },
       openCancelDialog() {
-        this.cancelDialog = true;
+        if (this.uuid || this.note.title || this.note.text) {
+          this.cancelDialog = true;
+        } else {
+          this.cancel();
+        }
       },
       onBrowserBackButton() {
         this.$router.go(1);

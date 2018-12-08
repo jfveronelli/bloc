@@ -1,6 +1,7 @@
 <template>
   <v-container fluid>
     <v-toolbar app clipped-left>
+      <GoToMain/>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
       <v-tooltip bottom :disabled="$root.isMobile">
@@ -41,9 +42,12 @@
           </v-card-title>
           <v-card-text>
             <div v-if="stage === 'loaded'" class="bl-markdown" v-html="noteText"></div>
-            <p v-else-if="stage === 'locked'" class="headline text-xs-center">
-              [ Content is encrypted: password is not set or is invalid ]
-            </p>
+            <div v-else-if="stage === 'locked'" class="headline text-xs-center">
+              <p>[ Content is encrypted: password is not set or is invalid ]</p>
+              <p>
+                <v-btn color="primary" @click="openPasswordDialog()">Password</v-btn>
+              </p>
+            </div>
             <p v-else class="text-xs-center">
               <v-progress-circular indeterminate color="primary" :size="70" :width="7"></v-progress-circular>
             </p>
@@ -58,6 +62,27 @@
       </v-btn>
       <span>Add<br/>[ Ctrl A ]</span>
     </v-tooltip>
+
+    <v-dialog persistent v-model="passwordDialog" max-width="400">
+      <v-card>
+        <v-card-title class="headline">Password</v-card-title>
+        <v-card-text>
+          <div>
+            <v-text-field required label="Password" ref="passwordField" :type="passwordShown? 'text': 'password'"
+                :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.password"
+                @click:append="passwordShown = !passwordShown"></v-text-field>
+          </div>
+          <div class="caption">
+            <v-icon small>message</v-icon>
+            <span class="bl-space-left">For security reasons, any view refresh will clear the password</span>
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn flat @click="closePasswordDialog()">Close</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="removeDialog" max-width="400">
       <v-card>
@@ -74,17 +99,21 @@
 </template>
 
 <script>
+  import GoToMain from "@/components/GoToMain.vue";
   import marked from "marked";
   import notes from "@/services/notes";
 
   export default {
     name: "read",
+    components: {GoToMain},
     data: () => ({
       uuid: null,
       note: notes.model.note(),
       noteEncrypted: false,
       noteText: "",
       stage: "loading",
+      passwordDialog: false,
+      passwordShown: false,
       removeDialog: false
     }),
     created() {
@@ -92,18 +121,8 @@
       notes.local.get(this.uuid).then(note => {
         this.note = note;
         this.noteEncrypted = !!note.crypto;
-        if (note.crypto && this.$root.password) {
-          return notes.crypto.decrypt(note, this.$root.password);
-        }
-        return note;
-      }).then(note => {
-        if (!note.crypto) {
-          this.noteText = marked(note.text);
-          this.stage = "loaded";
-        } else {
-          this.stage = "locked";
-        }
-      });
+        return this.decryptNote();
+      }).then(this.renderNote);
     },
     methods: {
       createNote() {
@@ -118,12 +137,36 @@
           this.cancel();
         });
       },
+      async decryptNote() {
+        this.stage = "loading";
+        if (this.note.crypto && this.$root.password) {
+          return notes.crypto.decrypt(this.note, this.$root.password);
+        }
+      },
+      renderNote() {
+        if (!this.note.crypto) {
+          this.noteText = marked(this.note.text);
+          this.stage = "loaded";
+        } else {
+          this.noteText = "";
+          this.stage = "locked";
+        }
+      },
       cancel() {
         if (this.removeDialog) {
           this.removeDialog = false;
         } else {
           this.$router.go(-1);
         }
+      },
+      openPasswordDialog() {
+        this.passwordShown = false;
+        this.passwordDialog = true;
+        this.$nextTick(() => this.$refs.passwordField.focus());
+      },
+      closePasswordDialog() {
+        this.passwordDialog = false;
+        this.decryptNote().then(this.renderNote);
       }
     }
   };
