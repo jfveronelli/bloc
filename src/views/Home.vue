@@ -92,7 +92,7 @@
             <v-list-tile-content>
               <v-list-tile-title>
                 <v-text-field flat solo clearable hide-details label="Filter"
-                    v-model="$root.tagFilter" v-on:input="tagFilterChanged()"/>
+                    v-model="$root.tagFilter" @input="tagFilterChanged()"/>
               </v-list-tile-title>
             </v-list-tile-content>
           </v-list-tile>
@@ -116,7 +116,7 @@
       <v-spacer/>
       <v-slide-x-transition>
         <v-text-field flat solo clearable hide-details prepend-inner-icon="search" label="Search" ref="searchField"
-            v-if="search" v-model="$root.searchText" v-on:input="refreshNotes()"/>
+            v-if="search" v-model="$root.searchText" @input="refreshNotes()"/>
       </v-slide-x-transition>
       <v-btn flat icon v-if="!search" @click.stop="openSearchField()">
         <v-icon>search</v-icon>
@@ -164,22 +164,16 @@
       </v-flex>
     </v-layout>
 
-    <v-tooltip top :disabled="$root.isMobile">
-      <v-btn fab fixed bottom right dark color="pink" slot="activator" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
-        <v-icon>add</v-icon>
-      </v-btn>
-      <span>Add<br/>[ Ctrl A ]</span>
-    </v-tooltip>
+    <bl-note-creation-btn/>
 
     <bl-password-dlg ref="passwordDialog"/>
 
     <v-dialog persistent v-model="syncDialog" max-width="400">
       <v-card>
         <v-card-title class="headline">Synchronizing</v-card-title>
-        <v-card-text class="subheading font-weight-bold text-xs-center">
-          <v-progress-circular indeterminate color="primary"></v-progress-circular>
-          <span class="ml-4 mr-5">Please wait...</span>
-          <div>&nbsp;</div>
+        <v-card-text class="subheading">
+          <bl-progress-circle/>
+          <div class="mb-3 text-xs-center font-weight-bold">Please wait...</div>
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -215,12 +209,14 @@
       </v-card>
     </v-dialog>
 
-    <bl-note-removal-dlg ref="removeDialog" :note="selectedNote" v-on:note-removal-dialog-confirmed="removeNote()"/>
+    <bl-note-removal-dlg ref="removeDialog" :note="selectedNote" @remove-note="removeNote()"/>
   </v-container>
 </template>
 
 <script>
   import UploadButton from "vuetify-upload-button";
+  import NoteCreationButton from "@/components/NoteCreationButton.vue";
+  import ProgressCircle from "@/components/ProgressCircle.vue";
   import PasswordDialog from "@/components/PasswordDialog.vue";
   import NoteRemovalDialog from "@/components/NoteRemovalDialog.vue";
   import saveAs from "file-saver";
@@ -231,6 +227,8 @@
     name: "Home",
     components: {
       "v-upload-btn": UploadButton,
+      "bl-note-creation-btn": NoteCreationButton,
+      "bl-progress-circle": ProgressCircle,
       "bl-password-dlg": PasswordDialog,
       "bl-note-removal-dlg": NoteRemovalDialog
     },
@@ -311,9 +309,6 @@
           this.$root.metrics.notes = new Date() - startTime;
         });
       },
-      createNote() {
-        this.$router.push({name: "new"});
-      },
       removeNote() {
         notes.local.remove(this.selectedNote.uuid).then(this.refreshTagsAndNotes);
         this.selectedNote = null;
@@ -393,8 +388,3 @@
     }
   };
 </script>
-
-<style scoped lang="stylus">
-  .bl-space-left
-    margin-left 5px
-</style>

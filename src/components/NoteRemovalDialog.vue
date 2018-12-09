@@ -28,7 +28,7 @@
       },
       confirm() {
         this.dialog = false;
-        this.$emit("note-removal-dialog-confirmed");
+        this.$emit("remove-note");
       }
     }
   }

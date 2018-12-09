@@ -4,12 +4,7 @@
       <bl-main-btn/>
       <v-toolbar-title class="headline">Bloc</v-toolbar-title>
       <v-spacer/>
-      <v-tooltip bottom v-if="!$root.isMobile">
-        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="$router.go(-1)" @click.stop="$router.go(-1)">
-          <v-icon>keyboard_backspace</v-icon>
-        </v-btn>
-        <span>Go back<br/>[ Esc ]</span>
-      </v-tooltip>
+      <bl-back-btn/>
     </v-toolbar>
 
     <v-layout justify-center>
@@ -28,11 +23,7 @@
                 </v-btn>
               </div>
             </div>
-            <div v-else>
-              <p class="text-xs-center">
-                <v-progress-circular indeterminate color="primary" :size="70" :width="7"></v-progress-circular>
-              </p>
-            </div>
+            <bl-progress-circle v-else/>
           </v-card-text>
         </v-card>
       </v-flex>
@@ -42,12 +33,16 @@
 
 <script>
   import MainButton from "@/components/MainButton.vue";
+  import BackButton from "@/components/BackButton.vue";
+  import ProgressCircle from "@/components/ProgressCircle.vue";
   import notes from "@/services/notes";
 
   export default {
     name: "Tags",
     components: {
-      "bl-main-btn": MainButton
+      "bl-main-btn": MainButton,
+      "bl-back-btn": BackButton,
+      "bl-progress-circle": ProgressCircle
     },
     data: () => ({
       tags: [],

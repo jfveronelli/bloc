@@ -8,7 +8,7 @@
 
 <script>
   export default {
-    name: "app"
+    name: "App"
   };
 </script>
 
@@ -94,7 +94,5 @@
       th
       td
         border 1px solid #dfe2e5
-        padding 0px 6px
-
-
+        padding 0 6px
 </style>

@@ -6,11 +6,11 @@
         <div>
           <v-text-field required label="Password" ref="passwordField" :type="passwordShown? 'text': 'password'"
               :append-icon="passwordShown? 'visibility_off': 'visibility'" v-model="$root.password"
-              @click:append="passwordShown = !passwordShown" v-on:keyup.enter="close()"/>
+              @click:append="passwordShown = !passwordShown" @keyup.enter="close()"/>
         </div>
         <div class="caption">
           <v-icon small>message</v-icon>
-          <span class="bl-space-left">For security reasons, any view refresh will clear the password</span>
+          <span class="ml-1">For security reasons, any view refresh will clear the password</span>
         </div>
       </v-card-text>
       <v-card-actions>
@@ -39,7 +39,7 @@
       },
       close() {
         this.dialog = false;
-        this.$emit("password-dialog-closed");
+        this.$emit("password-confirmed");
       }
     }
   };

@@ -18,12 +18,7 @@
         </v-btn>
         <span>Save<br/>[ Ctrl S ]</span>
       </v-tooltip>
-      <v-tooltip bottom v-if="!$root.isMobile">
-        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="openCancelDialog()" @click.stop="openCancelDialog()">
-          <v-icon>keyboard_backspace</v-icon>
-        </v-btn>
-        <span>Go back<br/>[ Esc ]</span>
-      </v-tooltip>
+      <bl-back-btn default="false" @go-back="openCancelDialog()"/>
     </v-toolbar>
 
     <v-layout justify-center>
@@ -50,11 +45,7 @@
               </v-combobox>
               <v-textarea rows="20" label="Content" v-model="note.text"></v-textarea>
             </div>
-            <div v-else>
-              <p class="text-xs-center">
-                <v-progress-circular indeterminate color="primary" :size="70" :width="7"></v-progress-circular>
-              </p>
-            </div>
+            <bl-progress-circle v-else/>
           </v-card-text>
         </v-card>
       </v-flex>
@@ -73,12 +64,14 @@
     </v-dialog>
 
     <bl-password-dlg title="Confirm password" button="Ok" focused="false" ref="passwordDialog"
-        v-on:password-dialog-closed="__saveNoteStep2()"/>
+        @password-confirmed="__saveNoteStep2()"/>
   </v-container>
 </template>
 
 <script>
   import MainButton from "@/components/MainButton.vue";
+  import BackButton from "@/components/BackButton.vue";
+  import ProgressCircle from "@/components/ProgressCircle.vue";
   import PasswordDialog from "@/components/PasswordDialog.vue";
   import notes from "@/services/notes";
 
@@ -86,6 +79,8 @@
     name: "Edit",
     components: {
       "bl-main-btn": MainButton,
+      "bl-back-btn": BackButton,
+      "bl-progress-circle": ProgressCircle,
       "bl-password-dlg": PasswordDialog
     },
     data: () => ({

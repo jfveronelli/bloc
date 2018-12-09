@@ -16,12 +16,7 @@
         </v-btn>
         <span>Remove<br/>[ Ctrl D ]</span>
       </v-tooltip>
-      <v-tooltip bottom v-if="!$root.isMobile">
-        <v-btn flat icon slot="activator" v-shortkey="['esc']" @shortkey="cancel()" @click.stop="cancel()">
-          <v-icon>keyboard_backspace</v-icon>
-        </v-btn>
-        <span>Go back<br/>[ Esc ]</span>
-      </v-tooltip>
+      <bl-back-btn/>
     </v-toolbar>
 
     <v-layout justify-center>
@@ -33,7 +28,7 @@
                 <span v-if="noteEncrypted" class="mr-3"><v-icon>lock</v-icon></span>
                 <span>{{ note.title }}</span>
               </div>
-              <div class="bl-subtitle">
+              <div class="mt-1">
                 <v-chip small class="caption" color="primary" text-color="white" v-for="tag in note.tags" :key="tag">
                   {{ tag }}
                 </v-chip>
@@ -48,29 +43,25 @@
                 <v-btn color="primary" @click="$refs.passwordDialog.open()">Password</v-btn>
               </p>
             </div>
-            <p v-else class="text-xs-center">
-              <v-progress-circular indeterminate color="primary" :size="70" :width="7"></v-progress-circular>
-            </p>
+            <bl-progress-circle v-else/>
           </v-card-text>
         </v-card>
       </v-flex>
     </v-layout>
 
-    <v-tooltip top :disabled="$root.isMobile">
-      <v-btn fab fixed bottom right dark color="pink" slot="activator" v-shortkey="['ctrl', 'a']" @shortkey="createNote()" @click="createNote()">
-        <v-icon>add</v-icon>
-      </v-btn>
-      <span>Add<br/>[ Ctrl A ]</span>
-    </v-tooltip>
+    <bl-note-creation-btn/>
 
-    <bl-password-dlg ref="passwordDialog" v-on:password-dialog-closed="decryptAndRenderNote()"/>
+    <bl-password-dlg ref="passwordDialog" @password-confirmed="decryptAndRenderNote()"/>
 
-    <bl-note-removal-dlg ref="removeDialog" v-on:note-removal-dialog-confirmed="removeNote()"/>
+    <bl-note-removal-dlg ref="removeDialog" @remove-note="removeNote()"/>
   </v-container>
 </template>
 
 <script>
   import MainButton from "@/components/MainButton.vue";
+  import BackButton from "@/components/BackButton.vue";
+  import NoteCreationButton from "@/components/NoteCreationButton.vue";
+  import ProgressCircle from "@/components/ProgressCircle.vue";
   import NoteRemovalDialog from "@/components/NoteRemovalDialog.vue";
   import PasswordDialog from "@/components/PasswordDialog.vue";
   import notes from "@/services/notes";
@@ -80,6 +71,9 @@
     name: "Read",
     components: {
       "bl-main-btn": MainButton,
+      "bl-back-btn": BackButton,
+      "bl-note-creation-btn": NoteCreationButton,
+      "bl-progress-circle": ProgressCircle,
       "bl-note-removal-dlg": NoteRemovalDialog,
       "bl-password-dlg": PasswordDialog
     },
@@ -99,14 +93,11 @@
       });
     },
     methods: {
-      createNote() {
-        this.$router.push({name: "new"});
-      },
       editNote() {
         this.$router.push({name: "edit", params: {uuid: this.uuid}});
       },
       removeNote() {
-        notes.local.remove(this.uuid).then(this.cancel);
+        notes.local.remove(this.uuid).then(() => this.$router.go(-1));
       },
       decryptAndRenderNote() {
         this.stage = "loading";
@@ -124,15 +115,7 @@
           this.noteText = "";
           this.stage = "locked";
         }
-      },
-      cancel() {
-        this.$router.go(-1);
       }
     }
   };
 </script>
-
-<style scoped lang="stylus">
-  .bl-subtitle
-    margin-top 4px
-</style>
