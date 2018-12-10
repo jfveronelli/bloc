@@ -349,55 +349,56 @@ class NotesSynchronizer {
 
 
 class NoteCrypto {
-  random(array) {
-    (window.crypto || window.msCrypto).getRandomValues(array);
-  }
-
-  async key(pass, salt) {
-    return await argon2.hash({pass, salt, hashLen: 32, time: 10, mem: 1024, parallelism: 1,
-        type: argon2.ArgonType.Argon2d, distPath: "js"});
-  }
-
-  hmac(keyStr, strArray) {
-    let hmac = sha256.hmac.create(keyStr);
-    strArray.forEach(str => hmac.update(str));
-    return hmac.hex();
-  }
-
-  async encrypt(note, pass) {
-    let salt = new Uint8Array(16);
-    this.random(salt);
-    let saltStr = aes.utils.hex.fromBytes(salt);
-    let key = await this.key(pass, salt);
-
-    let iv = new Uint8Array(16);
-    this.random(iv);
-    let ivStr = aes.utils.hex.fromBytes(iv);
-    let buffer = Array.from(aes.utils.utf8.toBytes(note.text));
+  __str2paddedbytes(text) {
+    let buffer = Array.from(aes.utils.utf8.toBytes(text));
     let padding = (16 - (buffer.length % 16)) || 16;
     for (let c = 0; c < padding; c++) {
       buffer.push(padding);
     }
-    let cbc = new aes.ModeOfOperation.cbc(key.hash, iv);
-    let cipher = base64.fromByteArray(cbc.encrypt(buffer));
+    return buffer;
+  }
 
-    let hmac = this.hmac(key.hashHex, [ivStr, cipher]);
+  random(size) {
+    let array = new Uint8Array(size);
+    (window.crypto || window.msCrypto).getRandomValues(array);
+    return array;
+  }
 
+  async key(password, salt) {
+    return await argon2.hash({pass: password, salt, hashLen: 32, time: 10, mem: 1024, parallelism: 1,
+        type: argon2.ArgonType.Argon2d, distPath: "js"});
+  }
+
+  hmac(key, byteArrays) {
+    let hmac = sha256.hmac.create(key);
+    byteArrays.forEach(array => hmac.update(array));
+    return hmac.hex();
+  }
+
+  async encrypt(note, pass) {
+    let salt = this.random(16);
+    let key = await this.key(pass, salt);
+    let iv = this.random(16);
+    let cipher = new aes.ModeOfOperation.cbc(key.hash, iv).encrypt(this.__str2paddedbytes(note.text));
+    let hmac = this.hmac(key.hash, [iv, cipher]);
+
+    let saltStr = aes.utils.hex.fromBytes(salt);
+    let ivStr = aes.utils.hex.fromBytes(iv);
+    let text = base64.fromByteArray(cipher);
     note.crypto = {salt: saltStr, iv: ivStr, hmac};
-    note.text = cipher;
+    note.text = text;
     return note;
   }
 
   async decrypt(note, pass) {
     let key = await this.key(pass, aes.utils.hex.toBytes(note.crypto.salt));
-
-    let hmac = this.hmac(key.hashHex, [note.crypto.iv, note.text]);
+    let iv = aes.utils.hex.toBytes(note.crypto.iv);
+    let cipher = base64.toByteArray(note.text);
+    let hmac = this.hmac(key.hash, [iv, cipher]);
     if (hmac !== note.crypto.hmac) {
       return note;
     }
 
-    let iv = aes.utils.hex.toBytes(note.crypto.iv);
-    let cipher = base64.toByteArray(note.text);
     let cbc = new aes.ModeOfOperation.cbc(key.hash, iv);
     let buffer = Array.from(cbc.decrypt(cipher));
     let padding = buffer[buffer.length - 1];
