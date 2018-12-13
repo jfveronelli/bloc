@@ -68,7 +68,7 @@ class Model {
     header = yaml.safeLoad(header, {schema: yaml.FAILSAFE_SCHEMA});
 
     note.title = header.title;
-    note.tags = header.tags || [];
+    note.tags = utils.uniques(header.tags) || [];
     if (header.type) {
       note.type = header.type;
     }
@@ -140,6 +140,7 @@ class NotesDB {
       let pos = note.tags.indexOf(tag);
       if (newTags) {
         note.tags.splice(pos, 1, ...newTags);
+        utils.uniques(note.tags);
       } else {
         note.tags.splice(pos, 1);
       }

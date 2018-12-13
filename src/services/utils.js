@@ -19,6 +19,19 @@ function fuzzyCompare(strA, strB) {
 }
 
 
+function uniques(array) {
+  if (array) {
+    for (let c = array.length - 1; c > 0; c--) {
+      let pos = array.indexOf(array[c]);
+      if (pos < c) {
+        array.splice(c, 1);
+      }
+    }
+  }
+  return array;
+}
+
+
 class IsPhrase {
   constructor(phrase) {
     this.regex = new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
@@ -88,6 +101,7 @@ const settings = new Settings();
 export default {
   localDate,
   fuzzyCompare,
+  uniques,
   isPhrase: phrase => new IsPhrase(phrase),
   isMobile,
   settings
