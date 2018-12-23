@@ -1,3 +1,4 @@
+import "material-design-icons-iconfont/dist/material-design-icons.css";
 import "typeface-roboto";
 import Vue from "vue";
 import Router from "vue-router";
@@ -10,7 +11,7 @@ import utils from "@/services/utils";
 import "@/registerServiceWorker";
 
 Vue.use(Router);
-Vue.use(Vuetify);
+Vue.use(Vuetify, {iconfont: "md"});
 Vue.use(VueShortKey);
 
 const routes = [
