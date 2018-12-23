@@ -1,3 +1,4 @@
+import "typeface-roboto";
 import Vue from "vue";
 import Router from "vue-router";
 import Vuetify from "vuetify/lib";
