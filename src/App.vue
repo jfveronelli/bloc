@@ -34,13 +34,13 @@
       background-color #eee
 
     .v-chip--small
-      height 14px
+      height 16px !important
 
       &.v-chip--removable
         height 22px
 
       .v-chip__content
-        padding: 0 5px
+        padding 0 5px
 
     @media screen and (max-width 520px)
 
@@ -61,7 +61,7 @@
 
           .v-divider--inset:not(.v-divider--vertical)
             margin 0
-            max-width: 100%
+            max-width 100%
 
   .bl-markdown
     overflow-wrap break-word

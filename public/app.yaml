@@ -1,6 +1,6 @@
-runtime: python27
-api_version: 1
-threadsafe: true
+runtime: python37
+
+default_expiration: "365d"
 
 handlers:
 - url: /
@@ -19,6 +19,10 @@ handlers:
   static_files: manifest.json
   upload: manifest.json
   secure: always
+- url: /precache(.*)$
+  static_files: precache\1
+  upload: precache(.*)$
+  secure: always
 - url: /privacy.html
   static_files: privacy.html
   upload: privacy.html
@@ -30,9 +34,7 @@ handlers:
 - url: /service-worker.js
   static_files: service-worker.js
   upload: service-worker.js
-  secure: always
-- url: /cache
-  static_dir: cache
+  expiration: "1d"
   secure: always
 - url: /css
   static_dir: css

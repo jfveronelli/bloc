@@ -183,7 +183,7 @@
         <v-card-title class="headline">Import notes</v-card-title>
         <v-card-text class="text-xs-center subheading">
           <div v-if="!importMessage">
-            <v-upload-btn title="Import" accept="application/zip" :fileChangedCallback="importNotes"></v-upload-btn>
+            <v-upload-btn title="Import" accept="application/zip" @file-update="importNotes"></v-upload-btn>
           </div>
           <div v-else v-html="importMessage"></div>
         </v-card-text>

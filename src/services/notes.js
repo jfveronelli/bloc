@@ -1,5 +1,5 @@
 import Dexie from "dexie";
-import uuid from "uuid/v4";
+import {v4 as uuid4} from "uuid";
 import yaml from "js-yaml";
 import JSZip from "jszip";
 import axios from "axios";
@@ -21,7 +21,7 @@ class Model {
   note(note) {
     note = note || {};
     return {
-      uuid: note.uuid || uuid().replace(/-/g, ""),
+      uuid: note.uuid || uuid4().replace(/-/g, ""),
       date: note.date || new Date(),
       title: note.title || "",
       tags: note.tags? note.tags.slice(): [],
