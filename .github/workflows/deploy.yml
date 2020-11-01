@@ -20,4 +20,4 @@ jobs:
         project_id: ${{ secrets.GAE_PROJECT }}
         service_account_key: ${{ secrets.GAE_ACCOUNT }}
         export_default_credentials: true
-    - run: cd dist && gcloud app deploy --version=${{ secrets.GAE_VERSION }} --quiet
+    - run: cd dist && gcloud app deploy --version=2 --quiet

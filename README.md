@@ -6,31 +6,28 @@ Progressive Web Application for note taking, featuring GitHub Flavored Markdown,
 npm install
 ```
 
-### Compiles and hot-reloads for development
+### Compile and hot-reload for development
 ```
 npm run serve
 ```
 
-### Compiles and minifies for production
+### Compile and minify for production
 ```
 npm run build
 ```
 
-### Run your tests
-```
-npm run test
-```
-
-### Lints and fixes files
+### Lint and fix files
 ```
 npm run lint
 ```
 
-### Deploys to Google App Engine
+### Deploy to Google App Engine
 ```
+npm run build
+cd dist
 gcloud auth login
 gcloud config set project <projectID>
-gcloud app deploy --version <version>
+gcloud app deploy --version=<version> --quiet
 ```
 
 ### Customize configuration
