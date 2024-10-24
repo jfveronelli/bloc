@@ -23,7 +23,7 @@
     "register-service-worker": "^1.7.1",
     "typeface-roboto": "^1.1.13",
     "uuid": "^8.3.1",
-    "vue": "^2.6.12",
+    "vue": "^3.0.0",
     "vue-router": "^3.4.8",
     "vue-shortkey": "^3.1.7",
     "vuetify": "^1.5.24",
